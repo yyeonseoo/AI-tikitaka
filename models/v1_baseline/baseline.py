@@ -1,96 +1,14 @@
-"""Perovskite PCE baseline. Usage: python baseline.py [1]  (1 = download + data report; default = steps 2-4)"""
-import gzip
-import json
+"""v1 baseline. Usage: python models/v1_baseline/baseline.py [1]  (1 = download + data report; default = steps 2-4)"""
 import sys
-import time
-import urllib.request
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
-from sklearn.model_selection import GroupShuffleSplit
 
-API = "https://nomad-lab.eu/prod/v1/api/v1/"
-QUERY = {"section_defs.definition_qualified_name:all": ["perovskite_solar_cell_database.schema.PerovskiteSolarCell"]}
-SECTIONS = ["ref", "cell", "module", "substrate", "etl", "perovskite", "perovskite_deposition", "htl",
-            "backcontact", "add", "encapsulation", "jv", "stabilised", "eqe", "stability", "outdoor"]
-PREFIX = {"jv": "JV", "etl": "ETL", "htl": "HTL", "eqe": "EQE"}  # legacy CSV column prefixes
-CSV = Path("data/perovskite_db.csv")
-RAW = Path("data/raw")
-
-
-def post(endpoint, body, tries=10):
-    req = urllib.request.Request(API + endpoint, json.dumps(body).encode(), {"Content-Type": "application/json",
-                                                                          "Accept-Encoding": "gzip"})
-    for i in range(tries):
-        try:
-            with urllib.request.urlopen(req, timeout=300) as r:
-                body = r.read()
-                return json.loads(gzip.decompress(body) if r.headers.get("Content-Encoding") == "gzip" else body)
-        except Exception as e:
-            if i == tries - 1:
-                raise
-            wait = int(getattr(e, "headers", {}).get("Retry-After") or 10 * (i + 1))
-            print(f"  retry {endpoint} in {wait}s: {e}")
-            time.sleep(wait)
-
-
-def entry_ids():
-    ids, after = [], None
-    while True:
-        page = {"page_size": 10000, **({"page_after_value": after} if after else {})}
-        d = post("entries/query", {"owner": "visible", "query": QUERY, "pagination": page,
-                                   "required": {"include": ["entry_id"]}})
-        ids += [e["entry_id"] for e in d["data"]]
-        after = d["pagination"].get("next_page_after_value")
-        if not after:
-            return ids
-
-
-def flatten(quantities):
-    # search index holds every data.* field as {path_archive, <type>_value}; far faster than the archive API
-    row = {}
-    for q in quantities:
-        sec, _, k = q.get("path_archive", "").removeprefix("data.").partition(".")
-        if sec in SECTIONS and k:
-            v = next((v for f, v in q.items() if f.endswith("_value")), None)
-            row[f"{PREFIX.get(sec, sec.capitalize())}_{k}"] = v
-    return row
-
-
-def fetch_chunk(args):
-    i, ids = args
-    f = RAW / f"{i}.json"  # per-chunk cache so a crashed run resumes
-    if f.exists():
-        return json.loads(f.read_text(encoding="utf-8"))
-    d = post("entries/query", {"owner": "visible", "query": {"entry_id:any": ids},
-                               "pagination": {"page_size": len(ids)}})
-    rows = [{"entry_id": e["entry_id"], **flatten(e.get("search_quantities", []))} for e in d["data"]]
-    f.write_text(json.dumps(rows), encoding="utf-8")
-    return rows
-
-
-def download():
-    ids = entry_ids()
-    print(f"{len(ids)} entries, downloading archives...")
-    RAW.mkdir(parents=True, exist_ok=True)
-    chunks = list(enumerate(ids[i:i + 500] for i in range(0, len(ids), 500)))
-    rows = []
-    with ThreadPoolExecutor(3) as ex:  # ~10s per 500-entry page
-        for n, part in enumerate(ex.map(fetch_chunk, chunks), 1):
-            rows += part
-            if n % 10 == 0:
-                print(f"  {n}/{len(chunks)} chunks")
-    pd.DataFrame(rows).to_csv(CSV, index=False)
-
-
-def load():
-    if not CSV.exists():
-        download()
-    return pd.read_csv(CSV, low_memory=False, na_values=["Unknown"])  # DB uses "Unknown" for missing
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # repo root, so `src` imports from any cwd
+from src.data import load_nomad as load, mapbi_onestep, split_by_paper
 
 
 def step1():
@@ -111,8 +29,7 @@ FEATURES = ["temp", "time", "solvent", "additive"]
 
 
 def step2(df):
-    df = df[(df["Perovskite_composition_short_form"] == "MAPbI")  # DB short form for MAPbI3
-            & (df["Perovskite_deposition_procedure"] == "Spin-coating")]  # one-step: no ">>" second step
+    df = mapbi_onestep(df)
     print(f"MAPbI + one-step spin-coating: {len(df)} rows")
     d = pd.DataFrame({
         "doi": df["Ref_DOI_number"],
@@ -132,7 +49,7 @@ def step2(df):
 
 
 def step3(d):
-    tr, te = next(GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=0).split(d, groups=d["doi"]))
+    tr, te = split_by_paper(d["doi"])
     tr, te = d.iloc[tr], d.iloc[te]
     assert not set(tr["doi"]) & set(te["doi"])  # no paper on both sides
     print(f"\ntrain {len(tr)} rows / test {len(te)} rows")

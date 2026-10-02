@@ -2,7 +2,7 @@
 
 **목표:** 목표 PCE를 넣으면 공정 조건을 역으로 추천하는 것. 이를 위해 먼저 "공정 조건 → PCE" 예측 모델을 만들고, 그 모델로 조건 후보를 탐색합니다.
 **대상:** MAPbI3 + one-step 스핀코팅
-**재현:** `python eda.py` (숫자는 콘솔에, 그래프는 `figures/`에 저장)
+**재현:** `python eda/eda.py` (숫자는 콘솔에, 그래프는 `eda/figures/`에 저장)
 
 ## 0. 데이터와 정제 기준
 
@@ -50,8 +50,8 @@ DB 표기 규칙: `;`는 같은 단계 안의 여러 성분(혼합 용매, 화�
 
 ## 2. 분포
 
-![연속형 분포](figures/dist_continuous.png)
-![범주형 분포](figures/dist_categorical.png)
+![연속형 분포](../eda/figures/dist_continuous.png)
+![범주형 분포](../eda/figures/dist_categorical.png)
 
 - **어닐링 온도:** 53%가 100°C에 몰려 있습니다. 예측 모델이 100°C 밖의 구간에서 배울 데이터가 적습니다.
 - **어닐링 시간:** 10분이 33%이고, 5·15·30·60분처럼 반올림된 값에 몰려 있습니다.
@@ -60,8 +60,8 @@ DB 표기 규칙: `;`는 같은 단계 안의 여러 성분(혼합 용매, 화�
 
 ## 3. 변수별 PCE 관계 (train 80% 논문만)
 
-![연속형 vs PCE](figures/pce_vs_continuous.png)
-![범주형 vs PCE](figures/pce_vs_categorical.png)
+![연속형 vs PCE](../eda/figures/pce_vs_continuous.png)
+![범주형 vs PCE](../eda/figures/pce_vs_categorical.png)
 
 | 변수 | 관계 (train) |
 |---|---|
@@ -78,7 +78,7 @@ DB 표기 규칙: `;`는 같은 단계 안의 여러 성분(혼합 용매, 화�
 
 ## 4. 후보 변수끼리의 관계
 
-![상관 / 동시 출현](figures/relations.png)
+![상관 / 동시 출현](../eda/figures/relations.png)
 
 - **연속 변수 간 상관:** 모두 약합니다(|ρ| ≤ 0.28). 다중공선성 문제는 없습니다.
 - **범주 변수 간 연관(Cramér's V):**
@@ -93,7 +93,7 @@ DB 표기 규칙: `;`는 같은 단계 안의 여러 성분(혼합 용매, 화�
 
 ### 5-1. 연도
 
-![연도별 변화](figures/year_trends.png)
+![연도별 변화](../eda/figures/year_trends.png)
 
 - **PCE 중앙값:** 2013년 6%에서 2020년 15%로 꾸준히 올랐습니다.
 - **같은 기간 공정 변화:**
@@ -116,7 +116,7 @@ DB 표기 규칙: `;`는 같은 단계 안의 여러 성분(혼합 용매, 화�
 
 ### 5-2. 소자 구조 (n-i-p / p-i-n)
 
-![구조별 차이](figures/architecture_diff.png)
+![구조별 차이](../eda/figures/architecture_diff.png)
 
 - **PCE:** nip 13.1, pin 12.9로 거의 같습니다.
 - **공정 분포는 다릅니다:**
@@ -188,7 +188,7 @@ DB 표기 규칙: `;`는 같은 단계 안의 여러 성분(혼합 용매, 화�
 
 ## 9. 전체 컬럼 스캔: 1~8절 외의 추가 후보
 
-**재현:** `python eda.py scan`
+**재현:** `python eda/eda.py scan`
 **대상:** 1~8절과 같은 정제 데이터 (17,229행, PCE 관계는 같은 train 80% 논문 13,347행)
 
 ### 9-1. 스캔 기준

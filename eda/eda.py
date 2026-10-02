@@ -1,6 +1,8 @@
-"""EDA for choosing process variables (MAPbI3 + one-step spin coating). Usage: python eda.py
-Prints markdown tables (copied into eda_report.md) and saves plots to figures/."""
+"""EDA for choosing process variables (MAPbI3 + one-step spin coating).
+Usage: python eda/eda.py [scan]   (scan = section 9 column scan)
+Prints markdown tables (copied into reports/eda_report.md) and saves plots to eda/figures/."""
 import re
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -8,11 +10,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import GroupShuffleSplit
 
-NOMAD = Path("data/perovskite_db.csv")
-ORIG = Path("data/Perovskite_database_content_all_data.csv")
-FIG = Path("figures")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root, so `src` imports from any cwd
+from src.data import ORIG_CSV, drop_llm_and_non_1sun, load_nomad, mapbi_onestep, split_by_paper
+
+FIG = Path(__file__).resolve().parent / "figures"
 P = "Perovskite_deposition_"
 GAS = {"ar", "n2", "air", "dry air", "nitrogen", "argon"}
 
@@ -106,14 +108,7 @@ def atmosphere(s):
 
 
 def load():
-    df = pd.read_csv(NOMAD, low_memory=False, na_values=["Unknown"])
-    df = df[(df["Perovskite_composition_short_form"] == "MAPbI")
-            & (df["Perovskite_deposition_procedure"] == "Spin-coating")]
-    llm = df["Ref_extraction_method"] == "LLM"  # NOMAD-only auto-extracted rows; kept out for data quality
-    # 1 sun only: low-light (indoor) runs report PCE > 30% that isn't comparable
-    sun = pd.to_numeric(df["JV_light_intensity"], errors="coerce").between(90, 110)
-    print(f"excluded LLM-extracted rows: {llm.sum()}, non-1-sun rows: {(~llm & ~sun).sum()}")
-    return df[~llm & sun].reset_index(drop=True)
+    return drop_llm_and_non_1sun(mapbi_onestep(load_nomad())).reset_index(drop=True)
 
 
 def derive(df):
@@ -285,8 +280,8 @@ def plot_confounders(d):
 
 
 def compare_files():
-    n = pd.read_csv(NOMAD, low_memory=False, na_values=["Unknown"])
-    o = pd.read_csv(ORIG, low_memory=False, na_values=["Unknown"], encoding="utf-8-sig")
+    n = load_nomad()
+    o = pd.read_csv(ORIG_CSV, low_memory=False, na_values=["Unknown"], encoding="utf-8-sig")
     print("\n## file comparison")
     print(f"rows: orig {len(o)} / nomad {len(n)};  cols: orig {o.shape[1]} / nomad {n.shape[1]}")
     common = set(o.columns) & set(n.columns)
@@ -301,8 +296,7 @@ def compare_files():
         y = pd.to_datetime(f["Ref_publication_date"], errors="coerce", utc=True, format="mixed").dt.year
         print(f"{name} publication years: {y.min():.0f}-{y.max():.0f} (missing {y.isna().mean():.1%})")
     cols = list(dict.fromkeys(c for c, _ in {**VARS, **REFS}.values())) + ["JV_default_PCE"]
-    sub = lambda f: f[(f["Perovskite_composition_short_form"] == "MAPbI")
-                      & (f["Perovskite_deposition_procedure"] == "Spin-coating")]
+    sub = mapbi_onestep
     t = pd.DataFrame({
         "orig all": o.reindex(columns=cols).notna().mean(), "nomad all": n.reindex(columns=cols).notna().mean(),
         "orig MAPbI 1-step": sub(o).reindex(columns=cols).notna().mean(),
@@ -321,7 +315,7 @@ def main():
     plot_distributions(d)
 
     has = d.dropna(subset=["doi", "pce"])
-    tr_idx, _ = next(GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=0).split(has, groups=has["doi"]))
+    tr_idx, _ = split_by_paper(has["doi"])
     tr = has.iloc[tr_idx]
     print(f"\ntrain (80% of papers): {len(tr)} rows, {tr.doi.nunique()} papers")
     plot_pce(tr)
@@ -396,7 +390,7 @@ BELOW = [P + "reaction_solutions_compounds", "Perovskite_additives_concentration
 def train_mask(doi, pce):
     has = doi.notna() & pce.notna()
     idx = has[has].index
-    tr, _ = next(GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=0).split(idx, groups=doi[idx]))
+    tr, _ = split_by_paper(doi[idx])
     return doi.index.isin(idx[tr])
 
 
@@ -502,5 +496,4 @@ def scan():
 
 
 if __name__ == "__main__":
-    import sys
     scan() if sys.argv[1:] == ["scan"] else main()
