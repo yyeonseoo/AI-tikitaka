@@ -13,10 +13,10 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root, so `src` imports from any cwd
 from src.data import ORIG_CSV, drop_llm_and_non_1sun, load_nomad, mapbi_onestep, split_by_paper
+from src.features import antisolvent, dmso_frac, first_step, md, top
 
 FIG = Path(__file__).resolve().parent / "figures"
 P = "Perovskite_deposition_"
-GAS = {"ar", "n2", "air", "dry air", "nitrogen", "argon"}
 
 # name -> (raw DB column, kind). Derived values are built in derive().
 VARS = {
@@ -40,22 +40,6 @@ NUM = [k for k, (_, t) in VARS.items() if t == "num"]
 CAT = [k for k, (_, t) in VARS.items() if t == "cat"]
 
 
-def md(t, index=True):  # markdown table without the tabulate dependency
-    t = t.reset_index() if index else t
-    rows = [list(map(str, t.columns))] + [list(map(str, r)) for r in t.values.tolist()]
-    return "\n".join(["| " + " | ".join(rows[0]) + " |", "|" + "---|" * len(rows[0])]
-                     + ["| " + " | ".join(r) + " |" for r in rows[1:]])
-
-
-def first_step(s):
-    return s.str.split(">>").str[0].str.strip()
-
-
-def top(s, n):
-    keep = s.value_counts().index[:n]
-    return s.where(s.isin(keep) | s.isna(), "other")
-
-
 def pbi2_conc(compounds, concs):
     # concentration listed per compound, ";"-separated in the same order; keep only molar units
     if not isinstance(compounds, str) or not isinstance(concs, str):
@@ -66,18 +50,6 @@ def pbi2_conc(compounds, concs):
         return np.nan
     m = re.fullmatch(r"([\d.]+)\s*(M|mol/L)", vals[names.index("PbI2")])
     return float(m.group(1)) if m else np.nan
-
-
-def dmso_frac(solvents, ratios):
-    if not isinstance(solvents, str):
-        return np.nan
-    names = [s.strip() for s in solvents.split(">>")[0].split(";")]
-    if len(names) == 1:
-        return float(names[0] == "DMSO")
-    r = pd.to_numeric(pd.Series(str(ratios).split(">>")[0].split(";")), errors="coerce")
-    if len(r) != len(names) or r.isna().any() or r.sum() == 0:
-        return np.nan
-    return float(sum(v for n, v in zip(names, r) if n == "DMSO") / r.sum())
 
 
 def solvent_mix(solvents, ratios):
@@ -91,13 +63,6 @@ def solvent_mix(solvents, ratios):
     if len(r) != len(names) or r.isna().any() or r.sum() == 0:
         return ":".join(names) + " (ratio ?)"
     return ":".join(names) + " " + ":".join(f"{v:.0f}" for v in (r / r.sum() * 100).round())
-
-
-def antisolvent(media, used):
-    if isinstance(media, str):
-        m = media.split(">>")[0].strip()
-        return "gas" if m.lower() in GAS else m
-    return "used_unknown" if str(used) == "True" else "none_or_unreported"
 
 
 def atmosphere(s):

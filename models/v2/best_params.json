@@ -1,0 +1,33 @@
+{
+  "model": "lgbm",
+  "missing": "native NaN",
+  "params": {
+    "num_leaves": 15,
+    "n_estimators": 300,
+    "learning_rate": 0.05
+  },
+  "features": {
+    "process": [
+      "solvent",
+      "dmso_frac",
+      "antisolvent",
+      "anneal_temp",
+      "anneal_time",
+      "additive",
+      "solvent_annealing"
+    ],
+    "condition": [
+      "arch",
+      "backcontact",
+      "flexible",
+      "etl",
+      "htl"
+    ],
+    "correction": [
+      "year",
+      "scan_direction"
+    ]
+  },
+  "cv_MAE": 3.0929,
+  "cv_R2": 0.2674
+}
