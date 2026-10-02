@@ -71,6 +71,7 @@ python -m venv .venv
 | `python eda/eda.py scan` | EDA 9절 전체 컬럼 스캔 |
 | `python experiments/exp1/exp1.py` | 실험 1. 콘솔에는 요약만, 전체 표는 `experiments/exp1/results.md` |
 | `python experiments/exp1/exp1_boot.py` | 실험 1 주 결과: 논문 단위 클러스터 부트스트랩 (약 15분). 원시 결과 `bootstrap_runs_<시각>.csv`, 요약 `results_boot.md` |
+| `python experiments/exp1/exp1_baselines.py 200 bootstrap_runs_20261002_233453.csv` | 같은 재표집에서 Ridge·kNN 기준선과 v2를 짝지어 비교 (약 10분). 요약 `results_baselines.md` |
 | `python experiments/exp1/exp1_dev.py` | 실험 1 2차: 방법 A1·A2·B·C 추가, 누수 진단 D1·D2, 적중 수 95% 신뢰구간. 표는 `experiments/exp1/results_dev.md` |
 | `python models/v2/diagnose_v2.py` | v2 진단 (예측 vs 실제, PCE 구간별·그룹별 오차). 표는 `models/v2/diagnostics.md` |
 | `python models/v2/calibration.py` | 점수 → 목표 PCE(15/18/20%) 도달 확률 표. 역추천 화면용 조회표 `models/v2/calibration_table.csv` |
@@ -95,7 +96,7 @@ python -m venv .venv
 
 | 실험 | 질문 | 주요 결과 | 리포트 |
 |---|---|---|---|
-| 1 | 2017년까지 데이터에서 상위 10% 조합을 숨기면 v2 순위가 찾아내는가 | 논문 단위 클러스터 부트스트랩(200회): 예측 상위 10% 안 정답 비율이 v2 0.33 (95% 구간 0.14–0.54, 정답 논문 제외 설정)으로 무작위(0.10)보다 높음. B·앙상블 κ=1과 v2의 차이는 구간이 0을 포함해 우열을 판단할 증거 부족, A2는 v2보다 낮은 재표집이 더 많음. 외부 검토 반영(과거 전용 튜닝 등) 후 수치. 방법 선택용이며 최종 성능은 실험 2에서 확인 | [exp1_report.md](reports/exp1_report.md) |
+| 1 | 2017년까지 데이터에서 상위 10% 조합을 숨기면 v2 순위가 찾아내는가 | 논문 단위 클러스터 부트스트랩(200회): 예측 상위 10% 안 정답 비율이 v2 0.33 (95% 구간 0.14–0.54, 정답 논문 제외 설정)으로 무작위(0.10)보다 높음. B·앙상블 κ=1과 v2의 차이는 구간이 0을 포함해 우열을 판단할 증거 부족, A2는 v2보다 낮은 재표집이 더 많음. 단순 기준선: Ridge 0.31 (0.14–0.46), kNN 0.26 (0.07–0.50, 무작위와 구분 안 됨). v2와의 차이는 모두 우열 판단 증거 부족. 외부 검토 반영(과거 전용 튜닝 등) 후 수치. 방법 선택용이며 최종 성능은 실험 2에서 확인 | [exp1_report.md](reports/exp1_report.md) |
 | 2 | 2017년까지 학습 → 2018~2019년 새 조합 찾기 | 예정 | |
 
 EDA 결과와 변수 추천은 [reports/eda_report.md](reports/eda_report.md)에 있습니다.
