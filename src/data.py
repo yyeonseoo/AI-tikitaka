@@ -6,6 +6,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupShuffleSplit
 
@@ -107,5 +108,22 @@ def drop_llm_and_non_1sun(df):
 
 
 def split_by_paper(groups, test_size=0.2, seed=0):
-    """Positional (train, test) indices with no paper (DOI) on both sides."""
+    """Positional (train, test) indices with no paper (DOI) on both sides. Only used to build splits/doi_split.csv;
+    scripts read the saved roles through split_from_file so every script sees the same papers in test."""
     return next(GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=seed).split(groups, groups=groups))
+
+
+SPLIT_CSV = ROOT / "splits" / "doi_split.csv"
+
+
+def split_roles():
+    return pd.read_csv(SPLIT_CSV).set_index("doi")["role"]
+
+
+def split_from_file(dois):
+    """Positional (train, test) indices from splits/doi_split.csv. Fails loudly on a DOI the file doesn't know."""
+    role = dois.map(split_roles())
+    missing = dois[role.isna()].unique()
+    if len(missing):
+        raise ValueError(f"{len(missing)} DOIs not in {SPLIT_CSV.name} (e.g. {missing[:3]}); rebuild with splits/make_split.py")
+    return np.flatnonzero(role.values == "train"), np.flatnonzero(role.values == "test")

@@ -2,6 +2,7 @@
 Usage: python models/v2/model_v2.py
 Prints markdown sections (summarised in reports/model_v2_report.md), saves plots to models/v2/figures/
 and the chosen setup to models/v2/best_params.json. Variable choices live in config/v2.py."""
+import hashlib
 import json
 import re
 import sys
@@ -20,7 +21,7 @@ from sklearn.model_selection import GroupKFold
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))  # repo root, so `src` / `config` import from any cwd
 from config import v2 as C
-from src.data import load_nomad, mapbi_onestep, split_by_paper
+from src.data import load_nomad, mapbi_onestep, split_from_file
 from src.features import antisolvent, dmso_frac, first_step, md
 
 OUT = Path(__file__).resolve().parent
@@ -178,7 +179,10 @@ def scores(y, p):
 
 def cv(kind, params, impute, features, tr):
     cache = json.loads(CACHE.read_text()) if CACHE.exists() else {}
-    key = json.dumps([kind, params, impute, features, len(tr)])
+    # key covers the exact rows (hash of inputs, target and paper) plus every setting that changes the folds or model
+    data_hash = hashlib.sha1(pd.util.hash_pandas_object(tr[[*features, "pce", "doi"]].astype(str), index=False)
+                             .values.tobytes()).hexdigest()
+    key = json.dumps([kind, params, impute, features, data_hash, C.SEED, C.CV_FOLDS, C.TOP_N, C.MISSING])
     if key in cache:
         return np.array(cache[key])
     res = []
@@ -249,7 +253,7 @@ def main():
     raw_t = df[P + "thermal_annealing_temperature"]
     out(f"stepwise anneal values parsed: temp {(raw_t.notna() & num(raw_t).isna() & F['anneal_temp'].notna()).sum()} rows")
 
-    tr_i, te_i = split_by_paper(F["doi"], C.TEST_SIZE, C.SEED)
+    tr_i, te_i = split_from_file(F["doi"])  # roles saved in splits/doi_split.csv
     tr, te = F.iloc[tr_i].reset_index(drop=True), F.iloc[te_i].reset_index(drop=True)
     out(f"\ntrain {len(tr)} rows / {tr.doi.nunique()} papers; test {len(te)} rows / {te.doi.nunique()} papers")
 

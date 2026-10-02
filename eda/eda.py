@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root, so `src` imports from any cwd
-from src.data import ORIG_CSV, drop_llm_and_non_1sun, load_nomad, mapbi_onestep, split_by_paper
+from src.data import ORIG_CSV, drop_llm_and_non_1sun, load_nomad, mapbi_onestep, split_from_file
 from src.features import antisolvent, dmso_frac, first_step, md, top
 
 FIG = Path(__file__).resolve().parent / "figures"
@@ -280,7 +280,7 @@ def main():
     plot_distributions(d)
 
     has = d.dropna(subset=["doi", "pce"])
-    tr_idx, _ = split_by_paper(has["doi"])
+    tr_idx, _ = split_from_file(has["doi"])  # splits/doi_split.csv
     tr = has.iloc[tr_idx]
     print(f"\ntrain (80% of papers): {len(tr)} rows, {tr.doi.nunique()} papers")
     plot_pce(tr)
@@ -355,7 +355,7 @@ BELOW = [P + "reaction_solutions_compounds", "Perovskite_additives_concentration
 def train_mask(doi, pce):
     has = doi.notna() & pce.notna()
     idx = has[has].index
-    tr, _ = split_by_paper(doi[idx])
+    tr, _ = split_from_file(doi[idx])
     return doi.index.isin(idx[tr])
 
 

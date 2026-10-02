@@ -1,0 +1,43 @@
+{
+  "model": "lgbm",
+  "missing": "median+flag",
+  "params": {
+    "num_leaves": 15,
+    "n_estimators": 300,
+    "learning_rate": 0.05
+  },
+  "features": {
+    "process": [
+      "solvent",
+      "dmso_frac",
+      "antisolvent",
+      "anneal_temp",
+      "anneal_time",
+      "additive",
+      "solvent_annealing"
+    ],
+    "condition": [
+      "arch",
+      "backcontact",
+      "flexible",
+      "etl",
+      "htl"
+    ],
+    "correction": [
+      "year",
+      "scan_direction"
+    ]
+  },
+  "cv_MAE": 3.1351,
+  "cv_R2": 0.2312,
+  "data": {
+    "years": "<= 2017",
+    "role": "train (splits/doi_split.csv)",
+    "rows": 6687,
+    "papers": 1362
+  },
+  "cv": {
+    "folds": 5,
+    "seed": 0
+  }
+}
