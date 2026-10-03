@@ -35,7 +35,7 @@ config/
   v2.py              v2 변수 그룹, 상위 범주 개수, 튜닝 후보값, 조합 구간
   exp1.py            실험 1 설정 (숨길 비율, κ, 부트스트랩 수, 화학적 제약)
 experiments/
-  exp1/              실험 1: 숨긴 고효율 조합 찾기 (exp1.py, 2차 exp1_dev.py, 클러스터 부트스트랩 exp1_boot.py, results*.md, figures/)
+  exp1/              실험 1: 숨긴 고효율 조합 찾기 (exp1_hide_top.py 기본, exp1_more_methods.py 방법 추가, exp1_bootstrap.py·exp1_bootstrap_baselines.py 주 결과)
   exp2/              실험 2 (예정)
 data/                원본 데이터 (git 제외, 아래 방법으로 받음)
 ```
@@ -69,10 +69,10 @@ python -m venv .venv
 | `python models/v1_baseline/baseline.py` | v1 정제 → 학습·평가 → 상위 5개 조건 추천 |
 | `python eda/eda.py` | EDA 1~8절 수치 출력 + `eda/figures/` 그래프 생성 |
 | `python eda/eda.py scan` | EDA 9절 전체 컬럼 스캔 |
-| `python experiments/exp1/exp1.py` | 실험 1. 콘솔에는 요약만, 전체 표는 `experiments/exp1/results.md` |
-| `python experiments/exp1/exp1_boot.py` | 실험 1 주 결과: 논문 단위 클러스터 부트스트랩 (약 15분). 원시 결과 `bootstrap_runs_<시각>.csv`, 요약 `results_boot.md` |
-| `python experiments/exp1/exp1_baselines.py 200 bootstrap_runs_20261002_233453.csv` | 같은 재표집에서 Ridge·kNN 기준선과 v2를 짝지어 비교 (약 10분). 요약 `results_baselines.md` |
-| `python experiments/exp1/exp1_dev.py` | 실험 1 2차: 방법 A1·A2·B·C 추가, 누수 진단 D1·D2, 적중 수 95% 신뢰구간. 표는 `experiments/exp1/results_dev.md` |
+| `python experiments/exp1/exp1_hide_top.py` | 실험 1. 콘솔에는 요약만, 전체 표는 `experiments/exp1/results_hide_top.md` |
+| `python experiments/exp1/exp1_bootstrap.py` | 실험 1 주 결과: 논문 단위 클러스터 부트스트랩 (약 15분). 원시 결과 `bootstrap_runs_<시각>.csv`, 요약 `results_bootstrap.md` |
+| `python experiments/exp1/exp1_bootstrap_baselines.py 200 bootstrap_runs_20261002_233453.csv` | 같은 재표집에서 Ridge·kNN 기준선과 v2를 짝지어 비교 (약 10분). 요약 `results_bootstrap_baselines.md` |
+| `python experiments/exp1/exp1_more_methods.py` | 실험 1 2차: 방법 A1·A2·B·C 추가, 누수 진단 D1·D2, 적중 수 95% 신뢰구간. 표는 `experiments/exp1/results_more_methods.md` |
 | `python models/v2/diagnose_v2.py` | v2 진단 (예측 vs 실제, PCE 구간별·그룹별 오차). 표는 `models/v2/diagnostics.md` |
 | `python models/v2/calibration.py` | 점수 → 목표 PCE(15/18/20%) 도달 확률 표. 역추천 화면용 조회표 `models/v2/calibration_table.csv` |
 | `python models/v2/model_v2.py` | v2 정제 → 튜닝 → 평가 1~7. 콘솔에는 요약만, 전체 표는 `models/v2/results.md`. 교차검증 결과는 `models/v2/cache/`에 저장되어 중단 후 다시 실행하면 이어서 진행 |

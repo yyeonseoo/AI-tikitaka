@@ -5,12 +5,12 @@
 **재현 (순서대로):**
 1. `python splits/make_split.py`: 논문별 train/test 역할 파일 생성
 2. `python models/v2/tune_past.py`: 2017년까지 train 논문만으로 하이퍼파라미터 선택
-3. `python experiments/exp1/exp1.py`: 1차
-4. `python experiments/exp1/exp1_dev.py`: 2차
-5. `python experiments/exp1/exp1_boot.py`: 논문 단위 클러스터 부트스트랩 (주 결과)
+3. `python experiments/exp1/exp1_hide_top.py`: 1차
+4. `python experiments/exp1/exp1_more_methods.py`: 2차
+5. `python experiments/exp1/exp1_bootstrap.py`: 논문 단위 클러스터 부트스트랩 (주 결과)
 
 **설정:** [config/exp1.py](../config/exp1.py)
-**전체 표:** [results.md](../experiments/exp1/results.md) · [results_dev.md](../experiments/exp1/results_dev.md) · [results_boot.md](../experiments/exp1/results_boot.md) · 원시 결과 [bootstrap_runs_20261002_233453.csv](../experiments/exp1/bootstrap_runs_20261002_233453.csv)
+**전체 표:** [results_hide_top.md](../experiments/exp1/results_hide_top.md) · [results_more_methods.md](../experiments/exp1/results_more_methods.md) · [results_bootstrap.md](../experiments/exp1/results_bootstrap.md) · 원시 결과 [bootstrap_runs_20261002_233453.csv](../experiments/exp1/bootstrap_runs_20261002_233453.csv)
 
 > **이 실험은 방법 선택용입니다.** 방법 선택은 이 결과로 하지만, 최종 성능 주장은 실험 2(2017년까지 학습 → 2018~2019년 평가)에서 합니다.
 
@@ -53,7 +53,7 @@
 |---|---|---|
 | 1 | 실험 1이 2018년 이후 데이터로 고른 하이퍼파라미터(`best_params.json`)를 씀 | 2017년까지 train 논문만으로 다시 튜닝 → `best_params_past.json`. 실험 1은 이 파일만 읽고, 없으면 멈춤 |
 | 2 | 잡음 한계를 전체 연도 데이터(`F_all`)로 계산 | 실험 1 경로에서 제거. 2017년까지 데이터 안에서, "다른 논문 평균"을 **train 논문만으로** 계산하도록 다시 만듦 (8절) |
-| 3 | 2차(`exp1_dev.py`)에서 후보의 연도·스캔 방향을 고정하지 않음(실제 값 사용) | 1차와 같은 `candidate_inputs` 함수를 쓰게 하고, 들어간 값을 출력·검사 |
+| 3 | 2차(`exp1_more_methods.py`)에서 후보의 연도·스캔 방향을 고정하지 않음(실제 값 사용) | 1차와 같은 `candidate_inputs` 함수를 쓰게 하고, 들어간 값을 출력·검사 |
 | 4 | 스크립트마다 분할을 따로 계산 | [splits/doi_split.csv](../splits/doi_split.csv)에 논문별 역할을 저장하고 EDA·v2·실험 1이 공유. v2 논문의 역할은 기존과 같음 |
 | 5 | 교차검증 캐시 키에 데이터·설정 정보 없음, 패키지 버전 미고정 | 캐시 키에 데이터 해시·시드·폴드 수·범주 설정 포함. requirements.txt에 버전 고정 |
 | 6 | 동점 처리와 여러 난수가 하나의 난수 스트림을 공유 | 동점은 조합별 고정 키(sha1)로 처리. 부트스트랩·무작위 기준선·신뢰구간 재표집은 서로 다른 난수 스트림 |
@@ -93,7 +93,7 @@
 | v2 공정 변수만 | 0.21 | 0.13 |
 | v2 | 0.27 | 0.23 |
 
-### 2차 (`exp1_dev.py`): 상위 20 적중을 숨긴 비율 5/10/20%에 걸쳐 합산 (정답 10 + 20 + 40개, 무작위 7.2)
+### 2차 (`exp1_more_methods.py`): 상위 20 적중을 숨긴 비율 5/10/20%에 걸쳐 합산 (정답 10 + 20 + 40개, 무작위 7.2)
 
 | 방법 | 설계대로: 전 → 후 | D1: 전 → 후 | D2: 전 → 후 |
 |---|---|---|---|
@@ -111,7 +111,7 @@
 - **2차의 "B가 D1에서 가장 좋음(31)"이 사라졌습니다.** 수정 후 D1에서 v2·A2·B가 모두 24입니다.
 - **잡음 한계에서 "공정만 쓴 v2가 다른 논문 평균보다 낫다"(0.21 vs 0.14)가 사라졌습니다.** 2017년까지 데이터 안에서 train 논문만 쓰면 둘 다 0.13입니다. 이전 차이는 2018년 이후 데이터와 test 논문의 정보가 섞인 결과였을 가능성이 있습니다.
 
-## 4. 주 결과: 논문 단위 클러스터 부트스트랩 (`exp1_boot.py`)
+## 4. 주 결과: 논문 단위 클러스터 부트스트랩 (`exp1_bootstrap.py`)
 
 ### 설계
 
@@ -199,7 +199,7 @@
 | 기존 최고 따라 하기 | 0 | 0 | 4 | — | 65 |
 
 - **"기존 최고 따라 하기"는 무효입니다.** 이 방법은 숨기지 않은 상위 조합 자신(거리 0)과 그 이웃을 맨 앞에 놓습니다. 그런데 정답은 정의상 이 목록에서 빠져 있어서, 구조적으로 적중할 수 없는 불공정 비교입니다. 결과는 참고로만 남기고 결론에 쓰지 않습니다.
-- **화학적 제약:** 적용해도(후보 184개) 결론이 같습니다(results.md).
+- **화학적 제약:** 적용해도(후보 184개) 결론이 같습니다(results_hide_top.md).
 
 ## 6. 진단: 결과에 섞인 정보
 
@@ -214,9 +214,9 @@
 - **D1과 D2는 각각 따로 적용한 값입니다.** "공정 변수만으로 약 3.3~3.8배"라는 표현은 두 설정을 하나씩 적용한 결과의 범위입니다. 둘을 동시에 적용한 결과는 아닙니다.
 - **D2는 해석에 한계가 있습니다.** 정답 조합을 실제 조건과 다른 조건으로 예측하는 것이라, 정답 정의(실제 조건에서의 평균 PCE)와 예측 조건이 어긋납니다. 그래서 클러스터 부트스트랩에서는 D2를 뺐습니다.
 
-## 7. 2차 결과 (수정 후, `exp1_dev.py`)
+## 7. 2차 결과 (수정 후, `exp1_more_methods.py`)
 
-3절의 합산표가 요약입니다. 숨긴 비율별 표와 조합 단위 재표집 구간은 [results_dev.md](../experiments/exp1/results_dev.md)에 있습니다.
+3절의 합산표가 요약입니다. 숨긴 비율별 표와 조합 단위 재표집 구간은 [results_more_methods.md](../experiments/exp1/results_more_methods.md)에 있습니다.
 
 다만 그 파일의 구간은 **조합 단위 재표집에서 고유 정답만 센 것이라 아래로 치우쳐 있습니다.** 점추정보다 구간 상한이 낮은 경우가 많아서 신뢰구간으로 해석하면 안 됩니다. 방법 비교는 4절의 클러스터 부트스트랩을 기준으로 합니다.
 
@@ -256,8 +256,8 @@
 
 ## 10. 단순 기준선 추가: Ridge 회귀, 최근접 기존 조합(kNN)
 
-**재현:** `python experiments/exp1/exp1_baselines.py 200 bootstrap_runs_20261002_233453.csv`
-**결과:** [results_baselines.md](../experiments/exp1/results_baselines.md) · 원시 결과 [bootstrap_baselines_20261003_000228.csv](../experiments/exp1/bootstrap_baselines_20261003_000228.csv)
+**재현:** `python experiments/exp1/exp1_bootstrap_baselines.py 200 bootstrap_runs_20261002_233453.csv`
+**결과:** [results_bootstrap_baselines.md](../experiments/exp1/results_bootstrap_baselines.md) · 원시 결과 [bootstrap_baselines_20261003_000228.csv](../experiments/exp1/bootstrap_baselines_20261003_000228.csv)
 
 4절과 **같은 재표집**에서 돌렸습니다. 재표집마다 같은 시드를 쓰므로 같은 논문, 같은 후보, 같은 정답이 나옵니다. 함께 다시 돌린 v2가 이전 실행과 **402/402행 모두 같아서**, 재표집이 그대로 재현된 것을 확인했습니다. 단일 모델 방법이라 200회 돌렸고, 2017년까지 데이터만 썼습니다.
 
