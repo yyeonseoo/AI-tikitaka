@@ -36,15 +36,15 @@ PAIRS = [("v2", "Ridge"), ("v2", METHODS[2]), ("Ridge", METHODS[2])]
 
 # ---- Ridge ----
 class RidgeModel:
-    def __init__(self, alpha):
-        self.alpha = alpha
+    def __init__(self, alpha, features=ALL):
+        self.alpha, self.features = alpha, features
 
     def _enc(self, X):
         t = self.prep.transform(X)  # categoricals use the train-fitted category lists, so columns stay fixed
         return pd.get_dummies(t, columns=[c for c in t if isinstance(t[c].dtype, pd.CategoricalDtype)], dtype=float)
 
     def fit(self, X, y):
-        self.prep = Prep(ALL, impute=True).fit(X)  # median fill + missing flags
+        self.prep = Prep(self.features, impute=True).fit(X)  # median fill + missing flags
         Z = self._enc(X)
         self.cols = Z.columns
         self.num = [c for c in Z if c in C.NUMERIC]  # standardize numeric inputs only; one-hot and flags stay 0/1
@@ -61,16 +61,16 @@ class RidgeModel:
         return self.m.predict(self._scale(self._enc(X)))
 
 
-def ridge(train):
+def ridge(train, features=ALL):
     mse = {}
     for a in ALPHAS:
         err = []
         for i, j in GroupKFold(C.CV_FOLDS).split(train, groups=train["doi"]):
-            p = RidgeModel(a).fit(train.iloc[i], train.pce.iloc[i]).predict(train.iloc[j])
+            p = RidgeModel(a, features).fit(train.iloc[i], train.pce.iloc[i]).predict(train.iloc[j])
             err.append(np.mean((p - train.pce.iloc[j].values) ** 2))
         mse[a] = np.mean(err)
     alpha = min(mse, key=mse.get)
-    return RidgeModel(alpha).fit(train, train.pce), alpha
+    return RidgeModel(alpha, features).fit(train, train.pce), alpha
 
 
 # ---- kNN on process variables ----

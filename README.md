@@ -31,12 +31,13 @@ reports/             결과 리포트
   v1_baseline_report.md
   model_v2_report.md
   exp1_report.md
+  exp2_report.md
 config/
   v2.py              v2 변수 그룹, 상위 범주 개수, 튜닝 후보값, 조합 구간
   exp1.py            실험 1 설정 (숨길 비율, κ, 부트스트랩 수, 화학적 제약)
 experiments/
   exp1/              실험 1: 숨긴 고효율 조합 찾기 (exp1_hide_top.py 기본, exp1_more_methods.py 방법 추가, exp1_bootstrap.py·exp1_bootstrap_baselines.py 주 결과)
-  exp2/              실험 2 (예정)
+  exp2/              실험 2: 과거로 학습 → 미래 조합 추천 (PLAN.md 사전 계획, exp2_future.py, smoke/ 시험 실행)
 data/                원본 데이터 (git 제외, 아래 방법으로 받음)
 ```
 
@@ -69,6 +70,7 @@ python -m venv .venv
 | `python models/v1_baseline/baseline.py` | v1 정제 → 학습·평가 → 상위 5개 조건 추천 |
 | `python eda/eda.py` | EDA 1~8절 수치 출력 + `eda/figures/` 그래프 생성 |
 | `python eda/eda.py scan` | EDA 9절 전체 컬럼 스캔 |
+| `python experiments/exp2/exp2_future.py` | 실험 2 (약 2분). `--smoke`는 2017년까지 데이터 안의 시험 실행. 결과 `experiments/exp2/results_exp2.md` |
 | `python experiments/exp1/exp1_hide_top.py` | 실험 1. 콘솔에는 요약만, 전체 표는 `experiments/exp1/results_hide_top.md` |
 | `python experiments/exp1/exp1_bootstrap.py` | 실험 1 주 결과: 논문 단위 클러스터 부트스트랩 (약 15분). 원시 결과 `bootstrap_runs_<시각>.csv`, 요약 `results_bootstrap.md` |
 | `python experiments/exp1/exp1_bootstrap_baselines.py 200 bootstrap_runs_20261002_233453.csv` | 같은 재표집에서 Ridge·kNN 기준선과 v2를 짝지어 비교 (약 10분). 요약 `results_bootstrap_baselines.md` |
@@ -97,6 +99,6 @@ python -m venv .venv
 | 실험 | 질문 | 주요 결과 | 리포트 |
 |---|---|---|---|
 | 1 | 2017년까지 데이터에서 상위 10% 조합을 숨기면 v2 순위가 찾아내는가 | 논문 단위 클러스터 부트스트랩(200회): 예측 상위 10% 안 정답 비율이 v2 0.33 (95% 구간 0.14–0.54, 정답 논문 제외 설정)으로 무작위(0.10)보다 높음. B·앙상블 κ=1과 v2의 차이는 구간이 0을 포함해 우열을 판단할 증거 부족, A2는 v2보다 낮은 재표집이 더 많음. 단순 기준선: Ridge 0.31 (0.14–0.46), kNN 0.26 (0.07–0.50, 무작위와 구분 안 됨). v2와의 차이는 모두 우열 판단 증거 부족. 외부 검토 반영(과거 전용 튜닝 등) 후 수치. 방법 선택용이며 최종 성능은 실험 2에서 확인 | [exp1_report.md](reports/exp1_report.md) |
-| 2 | 2017년까지 학습 → 2018~2019년 새 조합 찾기 | 예정 | |
+| 2 | 2017년까지 학습 → 2018~2019년 고효율 조합 찾기 (사전 계획 [PLAN.md](experiments/exp2/PLAN.md)) | **사전 성공 기준 미달**: 주 방법(LightGBM)의 추천 상위 10% 안 정답 비율 0.23 (95% 구간 0.00–0.44, 무작위 0.10). 모든 방법의 평균이 무작위보다 높지만 정답 15개로는 구분 불가. 소자 단위 고효율 판별 AUC 0.68 (0.65–0.71)은 무작위보다 높음. 미래로 갈수록 효율 수준이 올라 R²는 0.09로 하락 | [exp2_report.md](reports/exp2_report.md) |
 
 EDA 결과와 변수 추천은 [reports/eda_report.md](reports/eda_report.md)에 있습니다.
