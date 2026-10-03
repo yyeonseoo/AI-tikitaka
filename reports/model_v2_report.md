@@ -188,7 +188,7 @@
 
 ## 진단 (test 3,018행)
 
-**재현:** `python models/v2/diagnose_v2.py` (전체 표는 [models/v2/diagnostics.md](../models/v2/diagnostics.md)). 모델과 분할은 위와 같습니다(test MAE 3.18, R² 0.26).
+**재현:** `python models/v2/diagnose.py` (전체 표는 [models/v2/diagnostics.md](../models/v2/diagnostics.md)). 모델과 분할은 위와 같습니다(test MAE 3.18, R² 0.26).
 
 ### 예측 vs 실제
 

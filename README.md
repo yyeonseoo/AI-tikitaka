@@ -17,7 +17,7 @@ models/
   v1_baseline/       v1: 어닐링 온도·시간·용매·첨가제 유무 → PCE (HistGradientBoosting)
   v2/                v2: 공정+조건+보정 변수 14개 → PCE (LightGBM)
     model_v2.py      정제, 모델 3종 비교, 평가 1~7
-    diagnose_v2.py   진단 (예측 vs 실제, 구간별·그룹별 오차)
+    diagnose.py   진단 (예측 vs 실제, 구간별·그룹별 오차)
     calibration.py   목표 PCE 도달 확률 표 (calibration_table.csv)
     results.md       실행 시 생성되는 전체 결과 표
     best_params.json 선택된 모델·설정 (전체 연도로 고름. 실험 1·2에서는 쓰지 않음)
@@ -32,12 +32,14 @@ reports/             결과 리포트
   model_v2_report.md
   exp1_report.md
   exp2_report.md
+  exp3_report.md
 config/
   v2.py              v2 변수 그룹, 상위 범주 개수, 튜닝 후보값, 조합 구간
   exp1.py            실험 1 설정 (숨길 비율, κ, 부트스트랩 수, 화학적 제약)
 experiments/
   exp1/              실험 1: 숨긴 고효율 조합 찾기 (exp1_hide_top.py 기본, exp1_more_methods.py 방법 추가, exp1_bootstrap.py·exp1_bootstrap_baselines.py 주 결과)
   exp2/              실험 2: 과거로 학습 → 미래 조합 추천 (PLAN.md 사전 계획, exp2_future.py, smoke/ 시험 실행)
+  exp3/              실험 3: 부분 점수 채점법 (1단계 exp3_backtest.py: 2017년까지 안에서 연습)
 data/                원본 데이터 (git 제외, 아래 방법으로 받음)
 ```
 
@@ -70,12 +72,13 @@ python -m venv .venv
 | `python models/v1_baseline/baseline.py` | v1 정제 → 학습·평가 → 상위 5개 조건 추천 |
 | `python eda/eda.py` | EDA 1~8절 수치 출력 + `eda/figures/` 그래프 생성 |
 | `python eda/eda.py scan` | EDA 9절 전체 컬럼 스캔 |
+| `python experiments/exp3/exp3_backtest.py` | 실험 3 1단계: 2015·2016·2017년을 그 전 해까지로 학습해 평가 (약 1분, 2018년 이후 안 씀) |
 | `python experiments/exp2/exp2_future.py` | 실험 2 (약 2분). `--smoke`는 2017년까지 데이터 안의 시험 실행. 결과 `experiments/exp2/results_exp2.md` |
 | `python experiments/exp1/exp1_hide_top.py` | 실험 1. 콘솔에는 요약만, 전체 표는 `experiments/exp1/results_hide_top.md` |
 | `python experiments/exp1/exp1_bootstrap.py` | 실험 1 주 결과: 논문 단위 클러스터 부트스트랩 (약 15분). 원시 결과 `bootstrap_runs_<시각>.csv`, 요약 `results_bootstrap.md` |
 | `python experiments/exp1/exp1_bootstrap_baselines.py 200 bootstrap_runs_20261002_233453.csv` | 같은 재표집에서 Ridge·kNN 기준선과 v2를 짝지어 비교 (약 10분). 요약 `results_bootstrap_baselines.md` |
 | `python experiments/exp1/exp1_more_methods.py` | 실험 1 2차: 방법 A1·A2·B·C 추가, 누수 진단 D1·D2, 적중 수 95% 신뢰구간. 표는 `experiments/exp1/results_more_methods.md` |
-| `python models/v2/diagnose_v2.py` | v2 진단 (예측 vs 실제, PCE 구간별·그룹별 오차). 표는 `models/v2/diagnostics.md` |
+| `python models/v2/diagnose.py` | v2 진단 (예측 vs 실제, PCE 구간별·그룹별 오차). 표는 `models/v2/diagnostics.md` |
 | `python models/v2/calibration.py` | 점수 → 목표 PCE(15/18/20%) 도달 확률 표. 역추천 화면용 조회표 `models/v2/calibration_table.csv` |
 | `python models/v2/model_v2.py` | v2 정제 → 튜닝 → 평가 1~7. 콘솔에는 요약만, 전체 표는 `models/v2/results.md`. 교차검증 결과는 `models/v2/cache/`에 저장되어 중단 후 다시 실행하면 이어서 진행 |
 
@@ -100,5 +103,6 @@ python -m venv .venv
 |---|---|---|---|
 | 1 | 2017년까지 데이터에서 상위 10% 조합을 숨기면 v2 순위가 찾아내는가 | 논문 단위 클러스터 부트스트랩(200회): 예측 상위 10% 안 정답 비율이 v2 0.33 (95% 구간 0.14–0.54, 정답 논문 제외 설정)으로 무작위(0.10)보다 높음. B·앙상블 κ=1과 v2의 차이는 구간이 0을 포함해 우열을 판단할 증거 부족, A2는 v2보다 낮은 재표집이 더 많음. 단순 기준선: Ridge 0.31 (0.14–0.46), kNN 0.26 (0.07–0.50, 무작위와 구분 안 됨). v2와의 차이는 모두 우열 판단 증거 부족. 외부 검토 반영(과거 전용 튜닝 등) 후 수치. 방법 선택용이며 최종 성능은 실험 2에서 확인 | [exp1_report.md](reports/exp1_report.md) |
 | 2 | 2017년까지 학습 → 2018~2019년 고효율 조합 찾기 (사전 계획 [PLAN.md](experiments/exp2/PLAN.md)) | **사전 성공 기준 미달**: 주 방법(LightGBM)의 추천 상위 10% 안 정답 비율 0.23 (95% 구간 0.00–0.44, 무작위 0.10). 모든 방법의 평균이 무작위보다 높지만 정답 15개로는 구분 불가. 소자 단위 고효율 판별 AUC 0.68 (0.65–0.71)은 무작위보다 높음. 미래로 갈수록 효율 수준이 올라 R²는 0.09로 하락 | [exp2_report.md](reports/exp2_report.md) |
+| 3 | 모든 후보를 쓰는 채점법(순위 일치도 등)으로 다시 평가 | 1단계(2017년까지 안의 연습): LightGBM 순위 일치도 0.47 (0.37–0.58, 무작위 0). 기존 지표보다 구분력 3배. 비슷한 조합 평균보다 LightGBM이 높음. 2단계 계획 확정 전 | [exp3_report.md](reports/exp3_report.md) |
 
 EDA 결과와 변수 추천은 [reports/eda_report.md](reports/eda_report.md)에 있습니다.
