@@ -29,7 +29,7 @@ OUT = Path(__file__).resolve().parent
 EXP2 = ROOT / "experiments" / "exp2"
 N_REP, SHARE, MIN_UNSEEN = 1000, 0.10, 10
 METHODS = ["lgbm", "ridge", "lgbm_process", "knn"]
-NAME = {"lgbm": "LightGBM", "ridge": "선형 회귀", "lgbm_process": "LightGBM, 공정만", "knn": "비슷한 조합 평균 (kNN)"}
+NAME = {"lgbm": "LightGBM", "ridge": "선형 회귀", "lgbm_process": "LightGBM, 공정+보정", "knn": "비슷한 조합 평균 (kNN)"}
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 

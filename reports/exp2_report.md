@@ -6,6 +6,9 @@
 **재현:** `python experiments/exp2/exp2_future.py` (약 2분). 시험 실행은 `--smoke` 옵션입니다.
 **결과 파일:** [results_exp2.md](../experiments/exp2/results_exp2.md) · 원시 결과 [bootstrap_exp2_20261003_233017.csv](../experiments/exp2/bootstrap_exp2_20261003_233017.csv) · 그림 [exp2_summary.png](../experiments/exp2/figures/exp2_summary.png)
 
+
+> **정제 수정 (2026-10-05, 외부 검토 2차):** 이후 PCE 정합성 검사에 실제 광세기를 반영하고(PCE = 100×Voc×Jsc×FF/광세기), 일부 단계를 해석할 수 없는 어닐링 값을 결측으로 바꿨습니다. 정제 결과가 15,945행 → 15,943행으로 바뀝니다. 이 리포트의 숫자는 수정 전 정제로 계산했고, 2018년 이후 데이터를 쓰는 분석이라 다시 돌리지 않았습니다.
+
 ## 결론
 
 | 판정 항목 | 기준 | 결과 | 판정 |

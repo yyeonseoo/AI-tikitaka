@@ -37,7 +37,7 @@ OUT = Path(__file__).resolve().parent
 EVAL_YEARS = [2015, 2016, 2017]
 SHARE, N_REP, HIGH = 0.10, 500, 15.0
 METRICS = ["spearman", "captured", "rec_pce", "ndcg", "hit", "near_miss"]
-NAME = {"lgbm": "LightGBM", "lgbm_detrended": "LightGBM, 연도 보정 타깃", "lgbm_process": "LightGBM, 공정만",
+NAME = {"lgbm": "LightGBM", "lgbm_detrended": "LightGBM, 연도 보정 타깃", "lgbm_process": "LightGBM, 공정+보정",
         "ridge": "선형 회귀", "knn": "비슷한 조합 평균", "random": "무작위"}
 if "Malgun Gothic" in {f.name for f in font_manager.fontManager.ttflist}:
     plt.rcParams["font.family"] = "Malgun Gothic"

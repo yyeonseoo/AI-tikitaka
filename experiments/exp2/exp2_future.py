@@ -32,11 +32,11 @@ from src.features import md
 
 OUT = Path(__file__).resolve().parent
 SHARE, AUX_SHARE, HIGH, LOW_PCE, K_NN, N_ENS = 0.10, 0.20, 15.0, 5.0, 5, 10
-PROC = C.PROCESS + C.CORRECTION  # "process only" inputs: process + correction variables
+PROC = C.PROCESS + C.CORRECTION  # "공정+보정": 7 process + 2 correction variables (correction pinned at prediction)
 IMPUTE = BEST["missing"] == "median+flag"
 NAME = {"lgbm": "LightGBM (주 방법)", "lgbm_no_fail": "LightGBM, 실패 소자 제외", "ens_mean": "LightGBM 10개 평균",
-        "ens_bonus": "LightGBM 10개 + 불확실성", "ridge": "선형 회귀", "lgbm_process": "LightGBM, 공정만",
-        "ridge_process": "선형 회귀, 공정만", "knn": "비슷한 조합 평균 (kNN)", "random": "무작위"}
+        "ens_bonus": "LightGBM 10개 + 불확실성", "ridge": "선형 회귀", "lgbm_process": "LightGBM, 공정+보정",
+        "ridge_process": "선형 회귀, 공정+보정", "knn": "비슷한 조합 평균 (kNN)", "random": "무작위"}
 REGRESSORS = ["lgbm", "lgbm_no_fail", "ens_mean", "ridge", "lgbm_process", "ridge_process"]
 PAIRS = [(m, "lgbm") for m in NAME if m not in ("lgbm", "random")] + [("knn", "lgbm_process"), ("ens_bonus", "ens_mean")]
 if "Malgun Gothic" in {f.name for f in font_manager.fontManager.ttflist}:
@@ -74,7 +74,7 @@ def knn_score(keys, train):
     existed in the training years counts as its own neighbour (real past knowledge, see PLAN.md)."""
     known = train.dropna(subset=["key"]).groupby("key").pce.mean()
     pc, pk = parts(pd.Index(keys)), parts(known.index)
-    span = {v: max(pd.concat([pc[v], pk[v]]).astype(float).pipe(lambda s: s.max() - s.min()), 1) for v in ("temp", "time")}
+    span = {v: max(pk[v].astype(float).pipe(lambda s: s.max() - s.min()), 1) for v in ("temp", "time")}  # training range only
     D = np.zeros((len(pc), len(pk)))
     for v in ("solvent", "antisolvent", "additive", "solvent_annealing"):
         D += pc[v].to_numpy()[:, None] != pk[v].to_numpy()[None, :]

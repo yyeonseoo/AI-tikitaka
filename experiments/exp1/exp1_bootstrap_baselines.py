@@ -61,11 +61,14 @@ class RidgeModel:
         return self.m.predict(self._scale(self._enc(X)))
 
 
-def ridge(train, features=ALL):
+def ridge(train, features=ALL, groups=None, folds=C.CV_FOLDS):
+    """groups: paper ids for the alpha search; inside a paper bootstrap pass the ORIGINAL paper id (orig_doi),
+    otherwise copies of one paper land on both sides of a fold."""
+    groups = train["doi"] if groups is None else groups
     mse = {}
     for a in ALPHAS:
         err = []
-        for i, j in GroupKFold(C.CV_FOLDS).split(train, groups=train["doi"]):
+        for i, j in GroupKFold(folds).split(train, groups=groups):
             p = RidgeModel(a, features).fit(train.iloc[i], train.pce.iloc[i]).predict(train.iloc[j])
             err.append(np.mean((p - train.pce.iloc[j].values) ** 2))
         mse[a] = np.mean(err)

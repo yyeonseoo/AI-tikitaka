@@ -70,21 +70,27 @@ def clean():
     pct = ff > 1
     df["JV_default_FF"] = ff.where(~pct, ff / 100)
     log("fix FF entered in % (/100)", df, f"{pct.sum()} rows fixed")
-    gap = (num(df["JV_default_Voc"]) * num(df["JV_default_Jsc"]) * df["JV_default_FF"] - num(df["JV_default_PCE"])).abs()
+    # PCE (%) = 100 * Voc [V] * Jsc [mA/cm2] * FF / light intensity [mW/cm2]
+    calc = 100 * num(df["JV_default_Voc"]) * num(df["JV_default_Jsc"]) * df["JV_default_FF"] / num(df["JV_light_intensity"])
+    gap = (calc - num(df["JV_default_PCE"])).abs()
     df = df[~(gap > C.PCE_CONSISTENCY_TOL)]
-    log(f"drop abs(Voc*Jsc*FF - PCE) > {C.PCE_CONSISTENCY_TOL}%p", df, f"{gap.isna().sum()} unverifiable rows kept")
+    log(f"drop abs(100*Voc*Jsc*FF/intensity - PCE) > {C.PCE_CONSISTENCY_TOL}%p", df, f"{gap.isna().sum()} unverifiable rows kept")
     df = df[df["Ref_DOI_number"].notna()]
     log("drop missing DOI (needed for paper split)", df)
     return df.reset_index(drop=True), pd.DataFrame(steps, columns=["step", "rows", "papers", "note"])
 
 
 def parse_steps(s, how):
-    # "65; 100" (stepwise anneal) -> max temperature / total time
+    # "65; 100" (stepwise anneal) -> max temperature / total time.
+    # If any step can't be read (e.g. "120 | Unknown", multi-layer "50; 100 | 50; 100"), the value is missing:
+    # computing from the readable steps only would make an incomplete record look complete.
     def f(v):
         if pd.isna(v):
             return np.nan
-        parts = num(pd.Series(re.split(r";|>>", str(v)))).dropna()
-        return np.nan if parts.empty else (parts.max() if how == "max" else parts.sum())
+        parts = num(pd.Series([x.strip() for x in re.split(r";|>>", str(v))]))
+        if parts.isna().any():
+            return np.nan
+        return parts.max() if how == "max" else parts.sum()
     return s.map(f)
 
 
