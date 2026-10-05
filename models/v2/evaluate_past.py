@@ -2,8 +2,9 @@
 Train = train-role papers <= 2017, test = test-role papers <= 2017 (splits/doi_split.csv), hyperparameters from
 best_params_past.json. Reports regression metrics, a 'high efficiency (>= 15%)' classification view
 (accuracy / precision / recall / F1 / ROC-AUC / PR-AUC, threshold chosen on train out-of-fold predictions),
-paper-bootstrap 95% intervals, SHAP importance (LightGBM's built-in pred_contrib), and a summary of experiment 1.
+paper-bootstrap 95% intervals, SHAP importance (LightGBM's built-in pred_contrib).
 Usage: python models/v2/evaluate_past.py   (-> models/v2/evaluation_past.md, models/v2/figures/eval_*.png)"""
+import json
 import sys
 from pathlib import Path
 
@@ -22,15 +23,14 @@ from sklearn.model_selection import GroupKFold
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from config import v2 as C
-from experiments.exp1.exp1_hide_top import BEST, load_past
-from experiments.exp1.exp1_bootstrap_baselines import ridge
+from src.evaluation import load_data, ridge
 from models.v2.model_v2 import ALL, Model
 from src.data import split_from_file
 from src.features import md
 
 OUT = Path(__file__).resolve().parent
 FIG = OUT / "figures"
-EXP1 = ROOT / "experiments" / "exp1"
+BEST = json.loads((OUT / "best_params_past.json").read_text(encoding="utf-8"))  # chosen on <= 2017 only
 HIGH = 15.0  # "high efficiency" cut-off for the classification view
 N_BOOT = 1000
 if "Malgun Gothic" in {f.name for f in font_manager.fontManager.ttflist}:
@@ -170,33 +170,8 @@ def fig_shap(S, X):
     return imp[::-1]
 
 
-def fig_exp1():
-    """Experiment 1 summary from the saved bootstrap CSVs (no retraining)."""
-    runs = [pd.read_csv(p) for p in sorted(EXP1.glob("bootstrap_*.csv"))]
-    if not runs:
-        return None
-    R = pd.concat(runs)
-    R = R[(R.rep >= 0) & (R.setting == "D1: hide answer papers")].drop_duplicates(["rep", "method"])
-    label = {"v2": "LightGBM (기본)", "B drop PCE<5": "LightGBM, 실패 소자 제외", "ensemble k=1": "LightGBM 10개 + 불확실성",
-             "ensemble k=0": "LightGBM 10개 평균", "Ridge": "선형 회귀(Ridge)", "A2 within-paper ranker": "논문 안 순위 학습",
-             "kNN k=5": "비슷한 조합 평균"}
-    g = R[R.method.isin(label)].groupby("method").top10_share
-    t = pd.DataFrame({"mean": g.mean(), "lo": g.quantile(0.025), "hi": g.quantile(0.975)}).sort_values("mean")
-    fig, a = plt.subplots(figsize=(8, 4.5))
-    a.barh([label[m] for m in t.index], t["mean"], xerr=[t["mean"] - t.lo, t.hi - t["mean"]], capsize=3,
-           color=["#4C72B0" if m == "v2" else "#A0B4D0" for m in t.index])
-    a.axvline(0.10, color="#C44E52", ls="--", label="무작위로 고를 때 (10%)")
-    a.set(xlabel="숨긴 고효율 조합 중 추천 상위 10% 안에 들어온 비율", xlim=(0, 0.7),
-          title="실험 1: 숨긴 고효율 조합을 얼마나 찾아내나 (논문 재표집 200회, 선 = 95% 구간)")
-    a.legend(fontsize=8, loc="lower right")
-    fig.tight_layout()
-    fig.savefig(FIG / "eval_exp1_summary.png", dpi=120)
-    plt.close(fig)
-    return t
-
-
 def main():
-    F = load_past()
+    F = load_data(2017)
     tr_i, te_i = split_from_file(F["doi"])
     tr, te = F.iloc[tr_i].reset_index(drop=True), F.iloc[te_i].reset_index(drop=True)
     print(f"train {len(tr)} rows / {tr.doi.nunique()} papers, test {len(te)} rows / {te.doi.nunique()} papers (<= 2017)")
@@ -221,7 +196,6 @@ def main():
 
     fig_overview(te, preds, thresholds, M, CI)
     imp = fig_shap(S, te)
-    t1 = fig_exp1()
 
     tab = M.astype(object)
     for k in tab.index:
@@ -240,8 +214,7 @@ def main():
         f"{np.percentile(d_auc, 97.5):+.3f})\n\n"
         f"top 10% predicted (LightGBM): {len(top10)} rows, actual mean {top10.pce.mean():.1f}% vs all {te.pce.mean():.1f}%, "
         f"share >= {HIGH:g}%: {np.mean(top10.pce >= HIGH):.0%} vs {np.mean(te.pce >= HIGH):.0%}\n\n"
-        f"## SHAP mean |value| (%p)\n{md(imp.round(3).to_frame('mean |SHAP|'))}\n\n"
-        + (f"## experiment 1 summary (D1, top-10% share)\n{md(t1.round(3))}\n" if t1 is not None else ""),
+        f"## SHAP mean |value| (%p)\n{md(imp.round(3).to_frame('mean |SHAP|'))}\n",
         encoding="utf-8")
 
     print(md(M.round(3)))
@@ -252,7 +225,7 @@ def main():
                                        for m in ["R2", "ROC-AUC", "F1", "accuracy"]))
     print(f"top10% predicted actual >= {HIGH:g}%: {np.mean(top10.pce >= HIGH):.0%} (all {np.mean(te.pce >= HIGH):.0%})")
     print("SHAP top: " + ", ".join(f"{NAME[k]} {v:.2f}" for k, v in imp.head(8).items()))
-    print("figures: models/v2/figures/eval_overview.png, eval_shap.png, eval_exp1_summary.png")
+    print("figures: models/v2/figures/eval_overview.png, eval_shap.png")
 
 
 if __name__ == "__main__":
