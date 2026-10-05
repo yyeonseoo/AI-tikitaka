@@ -1,5 +1,11 @@
 # 실험 1: 숨긴 고효율 조합 찾기
 
+> **철회 (2026-10-05).** 외부 검토 2차에서 이 실험의 수치가 부풀려졌다는 것이 확인됐습니다. (1) 튜닝 단계에서 정답 조합을 일부 봤고, (2) 정답이 아닌 후보가 학습 데이터에 남아 있어 후보 전체 순위 지표가 부풀려졌고(원래 데이터 순위 일치도 0.77), (3) 부트스트랩 안 교차검증이 복사본 논문 이름을 썼습니다.
+> - **이 리포트의 수치는 결론에 쓰지 않습니다.** 기록으로만 남깁니다.
+> - **같은 질문(2017년까지 데이터 안에서 방법 비교)은 [실험 3 1단계](exp3_report.md)가 수정된 방식으로 답했습니다.** 전 해까지로 학습해 다음 해를 평가하므로 실제 쓰임새(앞으로 할 실험 추천)에도 더 가깝습니다. 결과: 모든 방법이 무작위보다 높고, 방법 간 우열은 판단할 증거 부족.
+> - 수정판(교차 채점, [exp1_crossfit.py](../experiments/exp1/exp1_crossfit.py), 계획 [PLAN_corrected_reruns.md](../experiments/PLAN_corrected_reruns.md))을 실행하다가 **중단했습니다.** 1회에 약 40분, 100회에 8~9시간이 걸리는데, 실험 3 1단계와 거의 같은 질문을 덜 현실적인 방식으로 다시 확인하는 것이라 새로 얻을 정보가 적다고 판단했습니다. 끝난 회차는 없습니다. 스크립트는 남겨 두었고 필요하면 그대로 실행할 수 있습니다.
+> - 원래 스크립트와 결과 파일(`exp1_hide_top.py`, `exp1_more_methods.py`, `exp1_bootstrap.py`, `exp1_bootstrap_baselines.py`, `results_*.md`, 원시 CSV)은 커밋 81577e4에 있습니다. 아래 링크 중 이 파일들을 가리키는 것은 그 커밋에서 열어야 합니다.
+
 **질문:** 가장 좋은 공정 조합들을 학습 데이터에서 숨겼을 때, v2를 이용한 순위가 그 조합들을 상위에 올려놓는가?
 
 **재현 (순서대로):**
@@ -10,7 +16,7 @@
 5. `python experiments/exp1/exp1_bootstrap.py`: 논문 단위 클러스터 부트스트랩 (주 결과)
 
 **설정:** [config/exp1.py](../config/exp1.py)
-**전체 표:** [results_hide_top.md](../experiments/exp1/results_hide_top.md) · [results_more_methods.md](../experiments/exp1/results_more_methods.md) · [results_bootstrap.md](../experiments/exp1/results_bootstrap.md) · 원시 결과 [bootstrap_runs_20261002_233453.csv](../experiments/exp1/bootstrap_runs_20261002_233453.csv)
+**전체 표:** [results_hide_top.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_hide_top.md) · [results_more_methods.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_more_methods.md) · [results_bootstrap.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_bootstrap.md) · 원시 결과 [bootstrap_runs_20261002_233453.csv](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/bootstrap_runs_20261002_233453.csv)
 
 > **이 실험은 방법 선택용입니다.** 방법 선택은 이 결과로 하지만, 최종 성능 주장은 실험 2(2017년까지 학습 → 2018~2019년 평가)에서 합니다.
 
@@ -221,7 +227,7 @@
 
 ## 7. 2차 결과 (수정 후, `exp1_more_methods.py`)
 
-3절의 합산표가 요약입니다. 숨긴 비율별 표와 조합 단위 재표집 구간은 [results_more_methods.md](../experiments/exp1/results_more_methods.md)에 있습니다.
+3절의 합산표가 요약입니다. 숨긴 비율별 표와 조합 단위 재표집 구간은 [results_more_methods.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_more_methods.md)에 있습니다.
 
 다만 그 파일의 구간은 **조합 단위 재표집에서 고유 정답만 센 것이라 아래로 치우쳐 있습니다.** 점추정보다 구간 상한이 낮은 경우가 많아서 신뢰구간으로 해석하면 안 됩니다. 방법 비교는 4절의 클러스터 부트스트랩을 기준으로 합니다.
 
@@ -262,7 +268,7 @@
 ## 10. 단순 기준선 추가: Ridge 회귀, 최근접 기존 조합(kNN)
 
 **재현:** `python experiments/exp1/exp1_bootstrap_baselines.py 200 bootstrap_runs_20261002_233453.csv`
-**결과:** [results_bootstrap_baselines.md](../experiments/exp1/results_bootstrap_baselines.md) · 원시 결과 [bootstrap_baselines_20261003_000228.csv](../experiments/exp1/bootstrap_baselines_20261003_000228.csv)
+**결과:** [results_bootstrap_baselines.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_bootstrap_baselines.md) · 원시 결과 [bootstrap_baselines_20261003_000228.csv](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/bootstrap_baselines_20261003_000228.csv)
 
 4절과 **같은 재표집**에서 돌렸습니다. 재표집마다 같은 시드를 쓰므로 같은 논문, 같은 후보, 같은 정답이 나옵니다. 함께 다시 돌린 v2가 이전 실행과 **402/402행 모두 같아서**, 재표집이 그대로 재현된 것을 확인했습니다. 단일 모델 방법이라 200회 돌렸고, 2017년까지 데이터만 썼습니다.
 
