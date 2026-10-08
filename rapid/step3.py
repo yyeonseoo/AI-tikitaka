@@ -93,7 +93,7 @@ def part_a(d, X):
     trva = pd.concat([tr, va])
     p = lgbm(best).fit(trva[X], trva.y).predict_proba(te[X])[:, 1]
     T = te.assign(p=p)
-    return per_amine(T), per_amine(T[~T.model_chosen]), best, {"train": len(tr), "val": len(va), "test": len(te)}
+    return per_amine(T), per_amine(T[~T.model_chosen]), best, {"train": len(tr), "val": len(va), "test": len(te)}, T
 
 
 # ---------------- B: new amine ----------------
@@ -209,7 +209,7 @@ def main():
     rng = np.random.default_rng(SEED)
 
     # A
-    RA, RA_s, best, sizes = part_a(d, X=XG)
+    RA, RA_s, best, sizes, _ = part_a(d, X=XG)
     ia = [rng.integers(0, len(RA), len(RA)) for _ in range(N_BOOT)]
     ga, aa = boot(RA.gain, ia), boot(RA.auc, ia)
     ia_s = [rng.integers(0, len(RA_s), len(RA_s)) for _ in range(N_BOOT)]
