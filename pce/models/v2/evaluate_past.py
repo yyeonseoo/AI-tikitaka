@@ -3,7 +3,7 @@ Train = train-role papers <= 2017, test = test-role papers <= 2017 (splits/doi_s
 best_params_past.json. Reports regression metrics, a 'high efficiency (>= 15%)' classification view
 (accuracy / precision / recall / F1 / ROC-AUC / PR-AUC, threshold chosen on train out-of-fold predictions),
 paper-bootstrap 95% intervals, SHAP importance (LightGBM's built-in pred_contrib).
-Usage: python models/v2/evaluate_past.py   (-> models/v2/evaluation_past.md, models/v2/figures/eval_*.png)"""
+Usage: python pce/models/v2/evaluate_past.py   (-> models/v2/evaluation_past.md, models/v2/figures/eval_*.png)"""
 import json
 import sys
 from pathlib import Path

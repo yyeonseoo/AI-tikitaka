@@ -2,7 +2,7 @@
 
 **목적:** 30분 안에 만든 최소 기준선입니다. 이후 버전이 넘어야 할 점수를 정하는 용도입니다.
 **코드:** [models/v1_baseline/baseline.py](../models/v1_baseline/baseline.py)
-**재현:** `python models/v1_baseline/baseline.py` (데이터 다운로드와 리포트는 `... baseline.py 1`)
+**재현:** `python pce/models/v1_baseline/baseline.py` (데이터 다운로드와 리포트는 `... baseline.py 1`)
 
 ## 1. 데이터와 정제 기준
 

@@ -1,5 +1,5 @@
 """EDA for choosing process variables (MAPbI3 + one-step spin coating).
-Usage: python eda/eda.py [scan]   (scan = section 9 column scan)
+Usage: python pce/eda/eda.py [scan]   (scan = section 9 column scan)
 Prints markdown tables (copied into reports/eda_report.md) and saves plots to eda/figures/."""
 import re
 import sys

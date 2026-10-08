@@ -1,11 +1,11 @@
 # v2: 공정 조건 → PCE 예측 모델
 
 **역할:** 최종 목표("목표 PCE → 공정 조건 역추천") 안에 들어갈 예측 모델이며, 실험 1·2의 비교 기준선이자 부품입니다.
-**재현:** `python models/v2/model_v2.py` (교차검증 결과는 `models/v2/cache/`에 저장되어 다시 실행하면 이어서 진행)
+**재현:** `python pce/models/v2/model_v2.py` (교차검증 결과는 `models/v2/cache/`에 저장되어 다시 실행하면 이어서 진행)
 **설정:** [config/v2.py](../config/v2.py) · **전체 표:** [models/v2/results.md](../models/v2/results.md) · **최종 설정:** [models/v2/best_params.json](../models/v2/best_params.json)
-**분할:** 논문별 train/test 역할은 [splits/doi_split.csv](../splits/doi_split.csv)에 저장되어 있고, v2·EDA·실험 1이 모두 이 파일을 씁니다(`python splits/make_split.py`로 생성). v2 논문의 역할은 기존 분할과 같아서 아래 숫자는 그대로 유효합니다.
+**분할:** 논문별 train/test 역할은 [splits/doi_split.csv](../splits/doi_split.csv)에 저장되어 있고, v2·EDA·실험 1이 모두 이 파일을 씁니다(`python pce/splits/make_split.py`로 생성). v2 논문의 역할은 기존 분할과 같아서 아래 숫자는 그대로 유효합니다.
 
-> **데이터 노출 이력 (외부 검토 반영, 2026-10-02):** v2를 개발하는 동안 2018년 이후 논문이 학습·튜닝에 포함됐습니다. 하이퍼파라미터 선택(train 교차검증), 변수 선택에 참고한 EDA, 아래 진단·도달 확률 표가 모두 2018~2020년 데이터를 썼습니다. 그래서 `best_params.json`과 이 리포트의 숫자는 **2018년 이후 데이터에 대해 독립적인 평가가 아닙니다.** 실험 1·2에는 2017년까지 train 논문만으로 다시 고른 [best_params_past.json](../models/v2/best_params_past.json)을 씁니다(`python models/v2/tune_past.py`). 다만 변수 구성과 후보값 격자는 전체 기간 EDA를 보고 정한 것이라, 그 영향까지 완전히 없앤 것은 아닙니다.
+> **데이터 노출 이력 (외부 검토 반영, 2026-10-02):** v2를 개발하는 동안 2018년 이후 논문이 학습·튜닝에 포함됐습니다. 하이퍼파라미터 선택(train 교차검증), 변수 선택에 참고한 EDA, 아래 진단·도달 확률 표가 모두 2018~2020년 데이터를 썼습니다. 그래서 `best_params.json`과 이 리포트의 숫자는 **2018년 이후 데이터에 대해 독립적인 평가가 아닙니다.** 실험 1·2에는 2017년까지 train 논문만으로 다시 고른 [best_params_past.json](../models/v2/best_params_past.json)을 씁니다(`python pce/models/v2/tune_past.py`). 다만 변수 구성과 후보값 격자는 전체 기간 EDA를 보고 정한 것이라, 그 영향까지 완전히 없앤 것은 아닙니다.
 
 
 > **정제 수정 (2026-10-05, 외부 검토 2차):** 이후 PCE 정합성 검사에 실제 광세기를 반영하고(PCE = 100×Voc×Jsc×FF/광세기), 일부 단계를 해석할 수 없는 어닐링 값을 결측으로 바꿨습니다. 정제 결과가 15,945행 → 15,943행으로 바뀝니다. 이 리포트의 숫자는 수정 전 정제로 계산했고, 2018년 이후 데이터를 쓰는 분석이라 다시 돌리지 않았습니다.
@@ -193,7 +193,7 @@
 
 ## 진단 (test 3,018행)
 
-**재현:** `python models/v2/diagnose.py` (전체 표는 [models/v2/diagnostics.md](../models/v2/diagnostics.md)). 모델과 분할은 위와 같습니다(test MAE 3.18, R² 0.26).
+**재현:** `python pce/models/v2/diagnose.py` (전체 표는 [models/v2/diagnostics.md](../models/v2/diagnostics.md)). 모델과 분할은 위와 같습니다(test MAE 3.18, R² 0.26).
 
 ### 예측 vs 실제
 
@@ -238,7 +238,7 @@
 
 ## D. 목표 PCE 도달 확률 보정
 
-**재현:** `python models/v2/calibration.py`
+**재현:** `python pce/models/v2/calibration.py`
 **산출물:**
 - 전체 표: [models/v2/calibration.md](../models/v2/calibration.md)
 - 역추천 화면용 조회표: [models/v2/calibration_table.csv](../models/v2/calibration_table.csv). 방법·목표·점수 구간별 확률을 담고 있습니다.

@@ -9,11 +9,11 @@
 **질문:** 가장 좋은 공정 조합들을 학습 데이터에서 숨겼을 때, v2를 이용한 순위가 그 조합들을 상위에 올려놓는가?
 
 **재현 (순서대로):**
-1. `python splits/make_split.py`: 논문별 train/test 역할 파일 생성
-2. `python models/v2/tune_past.py`: 2017년까지 train 논문만으로 하이퍼파라미터 선택
-3. `python experiments/exp1/exp1_hide_top.py`: 1차
-4. `python experiments/exp1/exp1_more_methods.py`: 2차
-5. `python experiments/exp1/exp1_bootstrap.py`: 논문 단위 클러스터 부트스트랩 (주 결과)
+1. `python pce/splits/make_split.py`: 논문별 train/test 역할 파일 생성
+2. `python pce/models/v2/tune_past.py`: 2017년까지 train 논문만으로 하이퍼파라미터 선택
+3. `python pce/experiments/exp1/exp1_hide_top.py`: 1차
+4. `python pce/experiments/exp1/exp1_more_methods.py`: 2차
+5. `python pce/experiments/exp1/exp1_bootstrap.py`: 논문 단위 클러스터 부트스트랩 (주 결과)
 
 **설정:** [config/exp1.py](../config/exp1.py)
 **전체 표:** [results_hide_top.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_hide_top.md) · [results_more_methods.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_more_methods.md) · [results_bootstrap.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_bootstrap.md) · 원시 결과 [bootstrap_runs_20261002_233453.csv](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/bootstrap_runs_20261002_233453.csv)
@@ -267,7 +267,7 @@
 
 ## 10. 단순 기준선 추가: Ridge 회귀, 최근접 기존 조합(kNN)
 
-**재현:** `python experiments/exp1/exp1_bootstrap_baselines.py 200 bootstrap_runs_20261002_233453.csv`
+**재현:** `python pce/experiments/exp1/exp1_bootstrap_baselines.py 200 bootstrap_runs_20261002_233453.csv`
 **결과:** [results_bootstrap_baselines.md](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/results_bootstrap_baselines.md) · 원시 결과 [bootstrap_baselines_20261003_000228.csv](https://github.com/yyeonseoo/AI-tikitaka/blob/81577e4/experiments/exp1/bootstrap_baselines_20261003_000228.csv)
 
 4절과 **같은 재표집**에서 돌렸습니다. 재표집마다 같은 시드를 쓰므로 같은 논문, 같은 후보, 같은 정답이 나옵니다. 함께 다시 돌린 v2가 이전 실행과 **402/402행 모두 같아서**, 재표집이 그대로 재현된 것을 확인했습니다. 단일 모델 방법이라 200회 돌렸고, 2017년까지 데이터만 썼습니다.

@@ -131,7 +131,7 @@ kNN은 과거 기록이 없는 새 조합에서는 거의 작동하지 않았습
 
 > **사후 수정 재실행:** 2018~2019년 데이터를 세 번째로 쓴 분석이라 확인적 증거가 아닙니다. **위의 사전 판정(미달)은 그대로 유효합니다.**
 
-**계획:** [PLAN_corrected_reruns.md](../experiments/PLAN_corrected_reruns.md) (실행 전 커밋 f40342e) · **재현:** `python experiments/exp2/exp2_corrected.py` (약 10분) · **결과:** [results_exp2_corrected.md](../experiments/exp2/results_exp2_corrected.md) · 그림 [exp2_corrected_summary.png](../experiments/exp2/figures/exp2_corrected_summary.png)
+**계획:** [PLAN_corrected_reruns.md](../experiments/PLAN_corrected_reruns.md) (실행 전 커밋 f40342e) · **재현:** `python pce/experiments/exp2/exp2_corrected.py` (약 10분) · **결과:** [results_exp2_corrected.md](../experiments/exp2/results_exp2_corrected.md) · 그림 [exp2_corrected_summary.png](../experiments/exp2/figures/exp2_corrected_summary.png)
 
 **고친 것:** 하이퍼파라미터를 2017년까지 데이터 안에서 논문 단위로 다시 골랐고(실험 1의 노출된 설정 대신), 새 정제와 학습 범위 기준 kNN 정규화를 썼고, 공정+보정 입력끼리 짝지어 비교했습니다. 후보는 원래처럼 재표집마다 다시 정했습니다(주). 소자 단위 AUC는 원래와 달리 **입력을 고정한 예측**(연도 2017, Reverse) 기준입니다.
 

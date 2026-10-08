@@ -13,7 +13,7 @@
 ## 1단계: 과거 안에서 연습 (수정판, 2026-10-05)
 
 **계획서:** [PLAN_phase1.md](../experiments/exp3/PLAN_phase1.md) (실행 전 커밋 `d96d6a2`, 처음 이름은 "실험 4")
-**재현:** `python experiments/exp3/exp3_backtest.py` (약 9분) · **결과:** [results_backtest.md](../experiments/exp3/results_backtest.md) · 그림 [backtest_summary.png](../experiments/exp3/figures/backtest_summary.png)
+**재현:** `python pce/experiments/exp3/exp3_backtest.py` (약 9분) · **결과:** [results_backtest.md](../experiments/exp3/results_backtest.md) · 그림 [backtest_summary.png](../experiments/exp3/figures/backtest_summary.png)
 
 > **성격:** 2017년까지 데이터만 쓰는 개발 단계 분석입니다. 방법 선택과 확인 평가의 계획에 쓰고, 최종 성능 주장에는 쓰지 않습니다.
 
@@ -183,7 +183,7 @@
 
 > **사후 수정 재실행:** 2018~2019년 데이터를 세 번째로 쓴 분석이라 확인적 증거가 아닙니다. 실험 2의 사전 판정(미달)은 그대로입니다.
 
-**계획:** [PLAN_corrected_reruns.md](../experiments/PLAN_corrected_reruns.md) (실행 전 커밋 f40342e) · **재현:** `python experiments/exp2/exp2_corrected.py` (실험 2와 같은 모델·재표집, 약 10분) · **결과:** [results_phase2_corrected.md](../experiments/exp3/results_phase2_corrected.md)
+**계획:** [PLAN_corrected_reruns.md](../experiments/PLAN_corrected_reruns.md) (실행 전 커밋 f40342e) · **재현:** `python pce/experiments/exp2/exp2_corrected.py` (실험 2와 같은 모델·재표집, 약 10분) · **결과:** [results_phase2_corrected.md](../experiments/exp3/results_phase2_corrected.md)
 
 **고친 것:** 튜닝을 2017년까지 데이터 안에서만 하고, 같은 입력 정보끼리 비교(LightGBM·선형 회귀의 공정+보정 − kNN)를 추가했습니다.
 

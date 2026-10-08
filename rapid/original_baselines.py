@@ -9,8 +9,8 @@ import sys
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT.parent))
-from src.features import md  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from util import md  # noqa: E402
 SRC = ROOT / "data" / "MLScripts" / "temp_densityconc" / "ML_Logs.zip"
 OUT = ROOT / "results_original_baselines.md"
 COLS = {"matthewCoef_success mean": "MCC", "f1_success mean": "F1", "precision_success mean": "precision", "recall_success mean": "recall"}

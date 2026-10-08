@@ -2,7 +2,7 @@
 Train every method once on <= 2017 (tuned inside it), rank 2018-2019 combinations, 1,000 paper-level resamples of the
 evaluation papers with the models fixed. This is the third use of 2018-2019 data, so it is NOT confirmatory evidence;
 the original pre-registered experiment 2 verdict (NOT MET, results_exp2.md) stands.
-Usage: python experiments/exp2/exp2_corrected.py [R=1000]
+Usage: python pce/experiments/exp2/exp2_corrected.py [R=1000]
 Outputs: experiments/exp2/results_exp2_corrected.md (experiment 2 metrics), experiments/exp3/results_phase2_corrected.md
 (experiment 3 phase 2 metrics), experiments/exp2/bootstrap_exp2_corrected_<timestamp>.csv,
 experiments/exp2/figures/exp2_corrected_summary.png; progress in experiments/exp2/exp2_progress.log (not committed)."""

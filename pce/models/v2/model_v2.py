@@ -1,5 +1,5 @@
 """v2: process + condition + correction variables -> PCE (MAPbI3, one-step spin coating).
-Usage: python models/v2/model_v2.py
+Usage: python pce/models/v2/model_v2.py
 Prints markdown sections (summarised in reports/model_v2_report.md), saves plots to models/v2/figures/
 and the chosen setup to models/v2/best_params.json. Variable choices live in config/v2.py."""
 import hashlib

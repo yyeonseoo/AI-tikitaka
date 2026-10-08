@@ -3,7 +3,7 @@
 Candidates are split into 5 folds (rank-interleaved by actual efficiency); each fold is hidden in turn, every method is
 trained (and tuned) on the rest and scores only the hidden fold, so no candidate is scored by a model that saw it.
 Uncertainty: paper-level bootstrap of <= 2017; every replicate re-derives candidates and folds and refits everything.
-Usage: python experiments/exp1/exp1_crossfit.py [R=100] [workers=8]     (python ... time  -> time one replicate)
+Usage: python pce/experiments/exp1/exp1_crossfit.py [R=100] [workers=8]     (python ... time  -> time one replicate)
 Replicates are appended to bootstrap_exp1_partial.csv, so an interrupted run resumes where it stopped.
 Outputs: experiments/exp1/results_exp1.md, bootstrap_exp1_<timestamp>.csv, figures/exp1_summary.png;
 progress in experiments/exp1/exp1_progress.log (not committed)."""

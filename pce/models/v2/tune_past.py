@@ -1,6 +1,6 @@
 """Past-only v2 tuning: pick hyperparameters using papers up to 2017 only (train-role papers in splits/doi_split.csv),
 so experiments 1 and 2 never depend on settings chosen with 2018+ data.
-Usage: python models/v2/tune_past.py   (-> models/v2/best_params_past.json, table -> models/v2/tuning_past.md)
+Usage: python pce/models/v2/tune_past.py   (-> models/v2/best_params_past.json, table -> models/v2/tuning_past.md)
 best_params.json (chosen with all years) is left as is and is not used by the experiments."""
 import json
 import sys

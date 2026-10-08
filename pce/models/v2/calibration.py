@@ -1,6 +1,6 @@
 """D: 'score -> probability of reaching a target PCE' tables, built from out-of-fold (OOF) predictions on the v2 train
 split and checked on the v2 test split. Compares v2 with method B (train without PCE < 5% rows).
-Usage: python models/v2/calibration.py   (tables -> models/v2/calibration.md, plot -> models/v2/figures/calibration.png,
+Usage: python pce/models/v2/calibration.py   (tables -> models/v2/calibration.md, plot -> models/v2/figures/calibration.png,
 lookup table for the recommender -> models/v2/calibration_table.csv)"""
 import json
 import sys

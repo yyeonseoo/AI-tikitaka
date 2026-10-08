@@ -1,4 +1,4 @@
-"""v1 baseline. Usage: python models/v1_baseline/baseline.py [1]  (1 = download + data report; default = steps 2-4)"""
+"""v1 baseline. Usage: python pce/models/v1_baseline/baseline.py [1]  (1 = download + data report; default = steps 2-4)"""
 import sys
 from pathlib import Path
 

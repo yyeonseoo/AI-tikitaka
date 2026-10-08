@@ -15,8 +15,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT.parent))
-from src.features import md  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from util import md  # noqa: E402
 
 CSV = ROOT / "data" / "MLScripts" / "temp_densityconc" / "0045.perovskitedata.csv"
 OUT = ROOT / "results_loo_baseline.md"

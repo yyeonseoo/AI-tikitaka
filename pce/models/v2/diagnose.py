@@ -1,6 +1,6 @@
 """v2 diagnostics on the test split: predicted vs actual, error by PCE band, what the top-predicted devices
 really achieve, and error by year / architecture / HTL.
-Usage: python models/v2/diagnose.py   (tables -> models/v2/diagnostics.md, plot -> models/v2/figures/)"""
+Usage: python pce/models/v2/diagnose.py   (tables -> models/v2/diagnostics.md, plot -> models/v2/figures/)"""
 import json
 import sys
 from pathlib import Path

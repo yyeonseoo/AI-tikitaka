@@ -3,7 +3,7 @@
 data that included its evaluation years).
 For each evaluation year Y in 2015-2017: train on papers before Y (hyperparameters chosen inside those years only),
 score Y's process combinations, compare rank agreement with the actual combination efficiency.
-Usage: python experiments/exp3/exp3_backtest.py [R=1000]
+Usage: python pce/experiments/exp3/exp3_backtest.py [R=1000]
 Outputs: experiments/exp3/results_backtest.md, bootstrap_backtest_<timestamp>.csv, figures/backtest_summary.png;
 progress in experiments/exp3/backtest_progress.log (not committed)."""
 import sys

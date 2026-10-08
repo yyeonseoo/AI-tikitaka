@@ -1,5 +1,5 @@
 """Build splits/doi_split.csv: one train/test role per paper (DOI), shared by EDA, v2 and experiment 1.
-Usage: python splits/make_split.py   (no model is trained or scored here)
+Usage: python pce/splits/make_split.py   (no model is trained or scored here)
 
 - Papers in the v2 cleaned data keep the role they had in v2 (GroupShuffleSplit, test 20%, seed 0),
   so the v2 numbers already reported stay valid.
