@@ -33,17 +33,15 @@ def metrics(y, p):
 
 def val_curve(train, d, val_amines, cfg, w, fold, X):
     """Mean AUC over validation amines at every k, scored on the rows left after 32 shots (same rows for every k)."""
-    rows = []
-    for g in val_amines:
+    def one(g, r):
         s = d[d[AMINE] == g].reset_index(drop=True)
-        if s.y.sum() == 0 or len(s) - KS[-1] < 10:
-            continue
-        for r in range(VAL_REPS):
-            perm = np.random.default_rng([SEED, 55, fold, r]).permutation(len(s))
-            P = shots_runs(train, s, cfg, w, perm, KS, X)
-            common = perm[KS[-1]:]
-            rows += [{"k": k, "auc": auc(s.y.to_numpy()[common], P[k][common])} for k in KS]
-    return pd.DataFrame(rows).groupby("k").auc.mean()
+        perm = np.random.default_rng([SEED, 55, fold, r]).permutation(len(s))
+        P = shots_runs(train, s, cfg, w, perm, KS, X)
+        common = perm[KS[-1]:]
+        return [{"k": k, "auc": auc(s.y.to_numpy()[common], P[k][common])} for k in KS]
+    ok = [g for g in val_amines if d.loc[d[AMINE] == g, "y"].sum() > 0 and (d[AMINE] == g).sum() - KS[-1] >= 10]
+    res = Parallel(n_jobs=-1)(delayed(one)(g, r) for g in ok for r in range(VAL_REPS))
+    return pd.DataFrame([x for rows in res for x in rows]).groupby("k").auc.mean()
 
 
 def test_amine(train, s, g, cfg, w, fold, kstar, X):
