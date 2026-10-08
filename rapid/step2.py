@@ -11,6 +11,7 @@ from joblib import Parallel, delayed
 from lightgbm import LGBMClassifier
 from scipy.optimize import minimize
 from scipy.stats import spearmanr
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import brier_score_loss, matthews_corrcoef, roc_auc_score
 from sklearn.pipeline import make_pipeline
@@ -49,7 +50,7 @@ def kshot(X_k, y_k, X):
     """New-amine data only. One outcome seen -> its smoothed rate as a constant."""
     if y_k.min() == y_k.max():
         return np.full(len(X), (y_k.sum() + 0.5) / (len(y_k) + 1))
-    m = make_pipeline(StandardScaler(), LogisticRegression(C=1.0, max_iter=2000)).fit(X_k, y_k)
+    m = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), LogisticRegression(C=1.0, max_iter=2000)).fit(X_k, y_k)
     return m.predict_proba(X)[:, 1]
 
 
