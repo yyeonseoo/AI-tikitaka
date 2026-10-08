@@ -80,7 +80,7 @@ def s_neighbor(D, score, start, h):
         if len(tested) < N_START:
             return start if not tested else farthest(D, tested, un)
         W = np.exp(-D[np.ix_(un, tested)] ** 2 / (2 * h ** 2))
-        est = (W * score[tested]).sum(1) / (W.sum(1) + 1e-12)
+        est = np.nan_to_num((W * score[tested]).sum(1) / (W.sum(1) + 1e-12), nan=-np.inf)
         best = np.flatnonzero(est >= est.max() - 1e-9)
         return farthest(D, tested, un[best]) if len(best) > 1 else un[best[0]]
     return run(nxt, score)
@@ -108,8 +108,10 @@ def s_retrain(train, s, X, score, kind, w):
 
 
 def nn_median(D):
-    E = D + np.diag(np.full(len(D), np.inf))
-    return np.median(E.min(1))
+    """Median nearest-neighbour distance between distinct conditions (exact repeats, distance 0, are ignored)."""
+    E = np.where(D > 1e-9, D, np.inf)
+    m = E.min(1)
+    return np.median(m[np.isfinite(m)])
 
 
 def evaluate_amine(d, g, train, X, fold, settings):
