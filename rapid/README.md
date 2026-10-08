@@ -158,7 +158,7 @@ k번을 고르는 방법: 무작위(주), 모델 불확실성 기준(Q4).
 
 ### EDA 결과 (2026-10-09) → 3단계에 반영
 
-전체: [results_eda.md](results_eda.md), 그림 [농도 조합](figures/eda_concentration.png), [아민 생김새](figures/eda_amine_geometry.png)
+전체: [results_eda.md](results_eda.md), 그림 [요약](figures/eda_summary.png), [농도 조합](figures/eda_concentration.png), [아민 생김새](figures/eda_amine_geometry.png)
 
 | 발견 | 3단계 결정 |
 |---|---|
