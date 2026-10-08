@@ -139,6 +139,8 @@ def main():
                 "판단": "우열 판단 증거 부족" if lo <= 0 <= hi else ("앞이 높음" if lo > 0 else "뒤가 높음")}
     P = pd.DataFrame([diff(k, "recal", b, mt) for k in KS for b in ("none", "kshot", "addtrain") for mt in ("mcc", "auc")]
                      + [diff(k, "recal_unc", "recal") for k in KS])
+    # post-hoc (added after the first run, not in the plan): retraining with the k shots was the strongest method
+    PH = pd.DataFrame([diff(k, "addtrain", b, mt) for k in KS for b in ("kshot", "none") for mt in ("mcc", "auc")])
     main_rows = P[(P.k == 8) & (P.지표 == "mcc") & P.비교.str.contains("보정 없음|새 아민 k번만")]
     success = (main_rows["2.5%"] > 0).all()
 
@@ -162,7 +164,9 @@ def main():
         f"- Q2, adding molar ratios (AUC difference): {np.nanmean(q2):+.3f} [{np.nanquantile(b2, 0.025):+.3f}, {np.nanquantile(b2, 0.975):+.3f}]\n"
         f"- Q1, amine descriptors -> amine success rate (Spearman over {len(amines)} amines): {rho:.3f} "
         f"[{np.nanquantile(brho, 0.025):.3f}, {np.nanquantile(brho, 0.975):.3f}]\n\n"
-        f"## methods by k\n{md(curve, index=False)}\n\n## paired comparisons\n{md(P, index=False)}\n", encoding="utf-8")
+        f"## methods by k\n{md(curve, index=False)}\n\n## paired comparisons (planned)\n{md(P, index=False)}\n\n"
+        "## post-hoc comparisons (added after the first run; exploratory, not part of the verdict)\n"
+        f"{md(PH, index=False)}\n", encoding="utf-8")
     print(verdict)
     print(md(curve[curve.k == 8], index=False))
     print(md(main_rows, index=False))
