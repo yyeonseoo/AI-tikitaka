@@ -7,3 +7,5 @@ eda_err.log
 scan_out.md
 scan_err.log
 models/v2/cache/
+
+rapid/data/
