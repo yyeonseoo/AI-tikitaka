@@ -264,7 +264,7 @@ def main():
     # figure: gain and AUC vs k
     BLUE, ORANGE = "#2a78d6", "#eb6834"
     fig, ax = plt.subplots(1, 2, figsize=(12, 4.5))
-    for a, mt, lab in ((ax[0], "gain", "추천 이득 (상위 20% 4점 비율 − 전체)"), (ax[1], "auc", "아민 안 AUC")):
+    for a, mt, lab in ((ax[0], "gain", "추천 이득 (상위 20% 4점 비율 - 전체)"), (ax[1], "auc", "아민 안 AUC")):
         for m, col, name in (("retrain", BLUE, "재학습 (다른 아민 + k번)"), ("kshot", ORANGE, "새 아민 k번만")):
             ks = ([0] if m == "retrain" else []) + KS
             v = [boot(vec(k, m, mt), ib) for k in ks]
