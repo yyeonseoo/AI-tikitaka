@@ -2,7 +2,7 @@
 Suzuki confirmation. Model families are fixed in advance; inner cross-validation only picks each model's settings.
 Outer: 5 group folds (same seed and fold function as model.py). Inner: leave-one-group-out over the training groups
 (5-fold by row for the random split). Reagent SMILES for Suzuki: reaction/reagents_sm.csv; knowledge: reaction/knowledge.csv.
-Usage: python reaction/model2.py   (-> reaction/results_model2.md, reaction/figures/model2_*.png)
+Usage: python reaction/model2.py [--mlp]   (-> reaction/results_model2.md, reaction/figures/model2_*.png)
 Each finished outer fold is saved to reaction/cache/model2/; rerunning skips finished folds, so the run can be stopped anytime."""
 import pickle
 import sys
@@ -33,6 +33,7 @@ from prepare import BH_SLOTS, SM_SLOTS, descriptors, load_bh, load_sm  # noqa: E
 
 OUT, FIG, CACHE = ROOT / "results_model2.md", ROOT / "figures", ROOT / "cache" / "model2"
 SEED, N_CFG = 0, 30
+WITH_MLP = "--mlp" in sys.argv  # the reference neural network runs only when asked (slowest model)
 BLUE, ORANGE, GRAY = "#2a78d6", "#eb6834", "#9a9893"
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
@@ -129,49 +130,55 @@ def run_split(name, d, slots, group, D, K):
     F1, F1K = D, D.join(K)
     mono = [1 if c == "K:lg_rank" else 0 for c in F1K.columns]
     models = {"LGBM·F1 (주)": ("lgbm", F1, cfg_l, None), "LGBM·F1+K": ("lgbm", F1K, cfg_l, None),
-              "LGBM·F1+K+단조": ("lgbm", F1K, cfg_l, mono), "MLP·F1+K (참고)": ("mlp", F1K, cfg_m, None)}
+              "LGBM·F1+K+단조": ("lgbm", F1K, cfg_l, mono)}
+    if WITH_MLP:
+        models["MLP·F1+K (참고)"] = ("mlp", F1K, cfg_m, None)
     y_all = d.y.to_numpy(float)
     pred, chosen = {}, []
     for f, tr, va, te in folds(d, group, rng):
-        ck = CACHE / f"{name.split(' (')[0].replace(' ', '_')}_fold{f}.pkl"  # one checkpoint per outer fold
-        if ck.exists():
-            saved, row = pickle.loads(ck.read_bytes())
-            for k, p in saved.items():
-                pred.setdefault(k, np.full(len(d), np.nan))[te] = p
-            chosen.append(row)
-            print(f"  {name} fold {f}: loaded from checkpoint", flush=True)
-            continue
+        # checkpoint per outer fold, updated after every model, so a rerun computes only what is missing
+        ck = CACHE / f"{name.split(' (')[0].replace(' ', '_')}_fold{f}.pkl"
+        saved, row = pickle.loads(ck.read_bytes()) if ck.exists() else ({}, {"split": name, "fold": f})
+
+        def save():
+            CACHE.mkdir(parents=True, exist_ok=True)
+            ck.write_bytes(pickle.dumps((saved, row)))
         trn = np.concatenate([tr, va])  # outer training = train + validation groups of model.py
         ytr = y_all[trn]
         if group:
             inner = list(LeaveOneGroupOut().split(trn, groups=d[group].to_numpy()[trn]))
         else:
             inner = list(KFold(5, shuffle=True, random_state=SEED).split(trn))
-        # simple baselines, chosen by the same inner CV
-        simple = {}
-        if group:
-            keys = [s for s in slots if s != group]
-            dt = d.iloc[trn]
-            cv = np.mean([mean_absolute_error(dt.y.iloc[b], target_means(dt.iloc[a], dt.iloc[b], keys)) for a, b in inner])
-            simple["조건 평균"] = (cv, target_means(dt, d.iloc[te], keys))
-        XR = ridge_pairs(d, slots).to_numpy(float)
-        alphas = {a: np.mean([mean_absolute_error(ytr[b], Ridge(a).fit(XR[trn][a_], ytr[a_]).predict(XR[trn][b]))
-                              for a_, b in inner]) for a in [0.1, 1, 10, 100]}
-        a = min(alphas, key=alphas.get)
-        simple["선형 + 짝 상호작용"] = (alphas[a], np.clip(Ridge(a).fit(XR[trn], ytr).predict(XR[te]), 0, 100))
-        best_s = min(simple, key=lambda k: simple[k][0])
-        for k, (_, p) in {**simple, "최선 단순 (안쪽 검증 선택)": simple[best_s]}.items():
-            pred.setdefault(k, np.full(len(d), np.nan))[te] = p
-        row = {"split": name, "fold": f, "최선 단순": best_s}
+        if "최선 단순 (안쪽 검증 선택)" not in saved:  # simple baselines, chosen by the same inner CV
+            simple = {}
+            if group:
+                keys = [s for s in slots if s != group]
+                dt = d.iloc[trn]
+                cv = np.mean([mean_absolute_error(dt.y.iloc[b], target_means(dt.iloc[a], dt.iloc[b], keys)) for a, b in inner])
+                simple["조건 평균"] = (cv, target_means(dt, d.iloc[te], keys))
+            XR = ridge_pairs(d, slots).to_numpy(float)
+            alphas = {a: np.mean([mean_absolute_error(ytr[b], Ridge(a).fit(XR[trn][a_], ytr[a_]).predict(XR[trn][b]))
+                                  for a_, b in inner]) for a in [0.1, 1, 10, 100]}
+            a = min(alphas, key=alphas.get)
+            simple["선형 + 짝 상호작용"] = (alphas[a], np.clip(Ridge(a).fit(XR[trn], ytr).predict(XR[te]), 0, 100))
+            best_s = min(simple, key=lambda k: simple[k][0])
+            saved.update({k: v for k, (_, v) in simple.items()})
+            saved["최선 단순 (안쪽 검증 선택)"] = simple[best_s][1]
+            row["최선 단순"] = best_s
+            save()
         for mname, (kind, X, cfgs, mo) in models.items():
+            if mname in saved:
+                continue
             Xa = X.to_numpy(float)
             scores = Parallel(n_jobs=-1)(delayed(inner_mae)(kind, p, Xa[trn], ytr, inner, mo) for p in cfgs)
             p = cfgs[int(np.argmin(scores))]
-            pred.setdefault(mname, np.full(len(d), np.nan))[te] = fit_predict(kind, p, Xa[trn], ytr, Xa[te], mo)
+            saved[mname] = fit_predict(kind, p, Xa[trn], ytr, Xa[te], mo)
             row[mname] = round(min(scores), 2)
-        chosen.append(row)
-        CACHE.mkdir(parents=True, exist_ok=True)
-        ck.write_bytes(pickle.dumps(({k: v[te] for k, v in pred.items()}, row)))
+            save()
+        keep = [k for k in saved if k in models or "(" not in k or "안쪽 검증" in k]  # drop MLP results when it is switched off
+        for k in keep:
+            pred.setdefault(k, np.full(len(d), np.nan))[te] = saved[k]
+        chosen.append({k: v for k, v in row.items() if k in models or k in ("split", "fold", "최선 단순")})
         print(f"  {name} fold {f}: done", flush=True)
     return pred, pd.DataFrame(chosen)
 
@@ -234,11 +241,11 @@ def main():
     fig, ax = plt.subplots(1, 3, figsize=(18, 5))
     for a, sp in zip(ax, [s[0] for s in splits[:3]]):
         d, g, P = res[sp]
-        keys = ["조건 평균", "선형 + 짝 상호작용", "LGBM·F1 (주)", "LGBM·F1+K", "LGBM·F1+K+단조", "MLP·F1+K (참고)"]
+        keys = [k for k in ["조건 평균", "선형 + 짝 상호작용", "LGBM·F1 (주)", "LGBM·F1+K", "LGBM·F1+K+단조", "MLP·F1+K (참고)"] if k in P]
         v = [boot_ci(per_group_mae(d, P[k], g)) for k in keys]
         m = np.array([x[0] for x in v])
         a.barh(keys[::-1], m[::-1], xerr=[(m - [x[1] for x in v])[::-1], ([x[2] for x in v] - m)[::-1]],
-               color=[GRAY, GRAY, BLUE, BLUE, BLUE, ORANGE][::-1], height=0.6, capsize=3)
+               color=[ORANGE if "MLP" in k else BLUE if "LGBM" in k else GRAY for k in keys][::-1], height=0.6, capsize=3)
         a.set(title=sp, xlabel="MAE (%p, 작을수록 좋음)")
         a.spines[["top", "right"]].set_visible(False)
     fig.suptitle("2차: 처음 보는 시약·기질의 수율 예측 오차 (회색 = 단순, 파랑 = LightGBM, 주황 = 신경망; 선 = 그룹 단위 95% 구간)")
