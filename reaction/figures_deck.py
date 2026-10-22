@@ -1,7 +1,7 @@
 """Presentation figures for the reaction-yield study (reaction/README.md).
 Numbers for the result charts are copied from results_model2.md, results_model3.md and results_analysis.md;
 the SHAP beeswarms are recomputed (LightGBM on all data, same settings as analysis.py).
-Usage: python reaction/figures_deck.py   (-> reaction/figures/deck/*.png)"""
+Usage: python reaction/figures_deck.py [--poster]   (-> reaction/figures/deck/*.png; --poster: burgundy, smaller, figures/poster/)"""
 import sys
 from pathlib import Path
 
@@ -17,10 +17,23 @@ from analysis import shap_slots  # noqa: E402
 from model2 import desc_bh, desc_sm, knowledge_bh, knowledge_sm  # noqa: E402
 from prepare import load_bh, load_sm  # noqa: E402
 
-OUT = ROOT / "figures" / "deck"
+POSTER = "--poster" in sys.argv
+OUT = ROOT / "figures" / ("poster" if POSTER else "deck")
 BG, INK, INK2, MUTED, GRID = "#fafaf7", "#1b2430", "#52514e", "#898781", "#e1e0d9"
-SIMPLE, RIDGE, ML = "#9a9893", "#86b6ef", "#2a78d6"
-ORANGE = "#eb6834"
+SIMPLE, RIDGE, ML, ORANGE = "#9a9893", "#86b6ef", "#2a78d6", "#eb6834"
+SEQ, DIV = ["#eef4fc", "#2a78d6", "#0d366b"], ["#2a78d6", "#d6d4cc", "#e34948"]
+SCALE = 1.0
+if POSTER:  # burgundy theme; figures drawn smaller so their text stays readable in a poster column
+    BG, INK = "#fbfaf8", "#221a1c"
+    SIMPLE, RIDGE, ML, ORANGE = "#a19d98", "#d4a3ad", "#7b1e34", "#c8693a"
+    SEQ, DIV = ["#f7eef0", "#9b3149", "#3f0d1a"], ["#3d6a99", "#dcd8d2", "#7b1e34"]
+    SCALE = 0.78
+
+
+def fs(w, h):
+    return (w * SCALE, h * SCALE)
+
+
 plt.rcParams.update({"font.family": "Malgun Gothic", "axes.unicode_minus": False, "font.size": 15,
                      "figure.facecolor": BG, "axes.facecolor": BG, "savefig.facecolor": BG,
                      "axes.edgecolor": "#c3c2b7", "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2,
@@ -62,8 +75,8 @@ def save(fig, name):
 
 def fig_substrates(bh):
     t = bh.groupby([bh.arene.map(ARENE), "halogen"]).y.mean().unstack()[["Cl", "Br", "I"]].reindex(list(ARENE.values()))
-    fig, ax = plt.subplots(figsize=(7.2, 5.4))
-    ax.imshow(t.values, cmap=matplotlib.colors.LinearSegmentedColormap.from_list("b", ["#eef4fc", "#2a78d6", "#0d366b"]),
+    fig, ax = plt.subplots(figsize=fs(7.2, 5.4))
+    ax.imshow(t.values, cmap=matplotlib.colors.LinearSegmentedColormap.from_list("b", SEQ),
               vmin=0, vmax=65, aspect="auto")
     for (i, j), v in np.ndenumerate(t.values):
         ax.text(j, i, f"{v:.0f}%", ha="center", va="center", fontsize=17, fontweight="bold", color="white" if v > 30 else INK)
@@ -77,7 +90,7 @@ def fig_substrates(bh):
 
 def fig_interaction():
     # in-sample R², results_eda.md
-    fig, ax = plt.subplots(figsize=(7.2, 4.6))
+    fig, ax = plt.subplots(figsize=fs(7.2, 4.6))
     x = np.arange(2)
     ax.bar(x - 0.19, [71, 51], 0.36, color=SIMPLE, label="시약 효과를 더하기만")
     ax.bar(x + 0.19, [90, 78], 0.36, color=ML, label="시약 짝 효과까지")
@@ -98,7 +111,7 @@ def fig_main():
             ("BH 처음 보는 고리", 19.35, (15.59, 23.22), 15.21, (12.40, 18.46)),
             ("SM 처음 보는 반응 자리", 18.70, (15.37, 22.18), 18.54, (16.36, 21.20)),
             ("SM 처음 보는 리간드", 15.04, (12.85, 17.61), 18.22, (14.72, 21.95))]
-    fig, ax = plt.subplots(figsize=(10, 5.6))
+    fig, ax = plt.subplots(figsize=fs(10, 5.6))
     for i, (name, s, sci, m, mci) in enumerate(rows):
         y = len(rows) - 1 - i
         ax.plot([s, m], [y, y], color=GRID, lw=6, solid_capstyle="round", zorder=1)
@@ -122,9 +135,9 @@ def fig_arene():
     # results_model3.md, per-arene MAE
     t = [("2-피리딜", 24.1, 19.3), ("3-피리딜", 19.7, 18.1), ("4-CF₃-페닐", 14.1, 8.8),
          ("4-메톡시페닐", 18.4, 14.8), ("4-에틸페닐", 20.4, 15.1)]
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    fig, ax = plt.subplots(figsize=fs(8, 4.8))
     for i, (name, s, m) in enumerate(t[::-1]):
-        ax.annotate("", xy=(m + 0.35, i), xytext=(s - 0.35, i), arrowprops=dict(arrowstyle="-|>", color="#86b6ef", lw=2.5))
+        ax.annotate("", xy=(m + 0.35, i), xytext=(s - 0.35, i), arrowprops=dict(arrowstyle="-|>", color=RIDGE, lw=2.5))
         ax.scatter(s, i, s=150, color=SIMPLE, edgecolor=BG, lw=2, zorder=3)
         ax.scatter(m, i, s=150, color=ML, edgecolor=BG, lw=2, zorder=3)
         ax.text(m - 0.6, i + 0.28, f"{m:.1f}", ha="center", fontsize=13, color=ML, fontweight="bold")
@@ -143,7 +156,7 @@ def fig_ablation():
     # results_analysis.md part A
     t = [("BH 처음 보는\n출발물질", 18.05, 15.83, 11.82), ("BH 처음 보는\n고리", 19.35, 17.44, 15.21),
          ("SM 처음 보는\n리간드", 15.04, 21.54, 18.22)]
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=fs(10, 5))
     x = np.arange(3)
     for k, (lab, c) in enumerate((("단순 방법 (분자 정보 없음)", SIMPLE), ("선형 회귀 + 분자 특성", RIDGE), ("LightGBM + 분자 특성", ML))):
         v = [r[k + 1] for r in t]
@@ -151,7 +164,7 @@ def fig_ablation():
         for xi, vi in zip(x, v):
             ax.text(xi + (k - 1) * 0.27, vi + 0.4, f"{vi:.1f}", ha="center", fontsize=13, color=INK2)
     ax.set(xticks=x, xticklabels=[r[0] for r in t], ylim=(0, 25), ylabel="예측 오차 MAE (%p)")
-    ax.legend(frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.12), fontsize=13)
+    ax.legend(frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.18 if POSTER else 1.12), fontsize=13)
     style(ax, "y")
     save(fig, "ablation")
 
@@ -159,8 +172,8 @@ def fig_ablation():
 def beeswarm(d, X, name, n=10):
     imp, _, S = shap_slots(d, X)
     top = list(imp.index[:n])
-    fig, ax = plt.subplots(figsize=(10, 0.62 * n + 1.2))
-    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("d", ["#2a78d6", "#d6d4cc", "#e34948"])
+    fig, ax = plt.subplots(figsize=fs(10, 0.62 * n + 1.2))
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("d", DIV)
     rng = np.random.default_rng(0)
     idx = rng.choice(len(d), min(len(d), 2000), replace=False)
     for i, c in enumerate(top[::-1]):
@@ -201,7 +214,7 @@ def fig_chem_bh(bh):
     lig = bh.groupby(bh.ligand.map(BH_LIGAND).fillna("AdBrettPhos")).y.mean()
     base = bh.groupby(bh.base.map(BH_BASE)).y.mean()
     hal = bh.groupby("halogen").y.mean().rename({"Cl": "C–Cl", "Br": "C–Br", "I": "C–I"})
-    fig, ax = plt.subplots(1, 3, figsize=(15, 3.8), gridspec_kw={"width_ratios": [1, 1.2, 1]})
+    fig, ax = plt.subplots(1, 3, figsize=fs(15, 3.8), gridspec_kw={"width_ratios": [1, 1.2, 1]})
     hbars(ax[0], hal, "반응 자리 할로젠", lo=["C–Cl"])
     hbars(ax[1], lig, "리간드", lo=["XPhos"])
     hbars(ax[2], base, "염기", hi=["MTBD"])
@@ -215,7 +228,7 @@ def fig_chem_sm(sm):
     nu = sm[sm.nucleophile.str.match(r"2[a-c]")].groupby("nucleophile").y.mean()
     nu.index = ["보론산 B(OH)₂", "피나콜 에스터 Bpin", "BF₃K 염"]
     lig = sm.groupby("ligand").y.mean()
-    fig, ax = plt.subplots(1, 3, figsize=(15, 5.2), gridspec_kw={"width_ratios": [1, 1.1, 1.2]})
+    fig, ax = plt.subplots(1, 3, figsize=fs(15, 5.2), gridspec_kw={"width_ratios": [1, 1.1, 1.2]})
     hbars(ax[0], lg, "반응 자리 (친전자체)", lo=["C–Cl"])
     hbars(ax[1], nu, "붕소 종류 (친핵체)", lo=["BF₃K 염"])
     hbars(ax[2], lig, "리간드", hi=["P(Ph)3"], lo=["Xantphos"])

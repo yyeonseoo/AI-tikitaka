@@ -127,7 +127,7 @@ BH에서 처음 보는 출발물질을 맞힌 것이 "같은 고리의 다른 �
 | `model2.py` | 2차: 화학 지식, 그룹 하나 빼기 검증, SM 확인. `--mlp`로 신경망 포함 (약 3시간) | [results_model2.md](results_model2.md), `figures/model2_summary.png` |
 | `model3.py` | 3차: 처음 보는 고리 구조. `--mlp`로 신경망 포함 (약 25분) | [results_model3.md](results_model3.md) |
 | `analysis.py` | 사후 분석: 선형 + 분자 특성 비교, SHAP (몇 분) | [results_analysis.md](results_analysis.md), `figures/analysis_shap.png` |
-| `figures_deck.py` | 발표용 그림 (원래 모양 SHAP 그림 포함). 결과 숫자는 결과 파일에서 옮김 | `figures/deck/*.png` |
+| `figures_deck.py` | 발표용 그림 (원래 모양 SHAP 그림 포함). 결과 숫자는 결과 파일에서 옮김. `--poster`: 버건디 포스터용 | `figures/deck/*.png`, `figures/poster/*.png` |
 | `reagents_sm.csv`, `knowledge.csv` | SM 시약 구조, 화학 지식 값과 출처 | |
 
 긴 실행은 묶음 × 모델 단위로 `reaction/cache/`에 저장되어(git 제외) 중간에 멈춰도 이어서 실행됩니다.
