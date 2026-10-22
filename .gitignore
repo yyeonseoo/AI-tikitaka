@@ -2,10 +2,4 @@
 data/
 *.log
 __pycache__/
-eda_out.md
-eda_err.log
-scan_out.md
-scan_err.log
 pce/models/v2/cache/
-
-rapid/data/
