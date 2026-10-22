@@ -152,7 +152,8 @@ def run_split(name, d, slots, group, D, K):
         if "최선 단순 (안쪽 검증 선택)" not in saved:  # simple baselines, chosen by the same inner CV
             simple = {}
             if group:
-                keys = [s for s in slots if s != group]
+                # same other conditions; when a whole arene is held out, its substrates are unseen too (halogen pooled)
+                keys = [s for s in slots if s != group and not (group == "arene" and s == "aryl_halide")]
                 dt = d.iloc[trn]
                 cv = np.mean([mean_absolute_error(dt.y.iloc[b], target_means(dt.iloc[a], dt.iloc[b], keys)) for a, b in inner])
                 simple["조건 평균"] = (cv, target_means(dt, d.iloc[te], keys))
