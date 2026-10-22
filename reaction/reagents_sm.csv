@@ -1,0 +1,38 @@
+slot,name,smiles,note
+electrophile,"1a, 6-Cl-Q",Clc1ccc2ncccc2c1,6-클로로퀴놀린
+electrophile,"1b, 6-Br-Q",Brc1ccc2ncccc2c1,6-브로모퀴놀린
+electrophile,"1c, 6-OTf-Q",O=S(=O)(Oc1ccc2ncccc2c1)C(F)(F)F,퀴놀린-6-일 트리플레이트
+electrophile,"1d, 6-I-Q",Ic1ccc2ncccc2c1,6-아이오도퀴놀린
+electrophile,"1e, 6-BOH2-Q",OB(O)c1ccc2ncccc2c1,퀴놀린-6-보론산 (HCl 염). 이 경우 반응 상대는 인다졸 브로민화물(2d)
+electrophile,"1f, 6-BPin-Q",CC1(C)OB(c2ccc3ncccc3c2)OC1(C)C,퀴놀린-6-보론산 피나콜 에스터. 상대는 2d
+electrophile,"1g, 6-BF3K-Q",F[B-](F)(F)c1ccc2ncccc2c1.[K+],퀴놀린-6-트라이플루오로보레이트 칼륨. 상대는 2d
+nucleophile,"2a, Boronic Acid",Cc1ccc2c(cnn2C2CCCCO2)c1B(O)O,인다졸 보론산
+nucleophile,"2b, Boronic Ester",Cc1ccc2c(cnn2C2CCCCO2)c1B1OC(C)(C)C(C)(C)O1,인다졸 보론산 피나콜 에스터
+nucleophile,"2c, Trifluoroborate",Cc1ccc2c(cnn2C2CCCCO2)c1[B-](F)(F)F.[K+],인다졸 트라이플루오로보레이트 칼륨
+nucleophile,"2d, Bromide",Cc1ccc2c(cnn2C2CCCCO2)c1Br,인다졸 브로민화물 (퀴놀린 붕소 화합물 1e~1g의 상대)
+ligand,AmPhos,CN(C)c1ccc(P(C(C)(C)C)C(C)(C)C)cc1,
+ligand,CataCXium A,CCCCP(C12CC3CC(CC(C3)C1)C2)C12CC3CC(CC(C3)C1)C2,
+ligand,P(Cy)3,C1CCC(P(C2CCCCC2)C2CCCCC2)CC1,
+ligand,P(Ph)3,c1ccc(P(c2ccccc2)c2ccccc2)cc1,
+ligand,P(o-Tol)3,Cc1ccccc1P(c1ccccc1C)c1ccccc1C,
+ligand,P(tBu)3,CC(C)(C)P(C(C)(C)C)C(C)(C)C,
+ligand,SPhos,COc1cccc(OC)c1-c1ccccc1P(C1CCCCC1)C1CCCCC1,
+ligand,XPhos,CC(C)c1cc(C(C)C)c(-c2ccccc2P(C2CCCCC2)C2CCCCC2)c(C(C)C)c1,
+ligand,Xantphos,CC1(C)c2cccc(P(c3ccccc3)c3ccccc3)c2Oc2c(P(c3ccccc3)c3ccccc3)cccc21,
+ligand,dppf,[Fe+2].c1ccc(P(c2ccccc2)[c-]2cccc2)cc1,원 파일 표기 그대로 (페로센 조각)
+ligand,dtbpf,CC(C)(C)P(C1=CC=C[CH]1)C(C)(C)C.[Fe],원 파일 표기 그대로 (페로센 조각)
+ligand,없음,,리간드 없음
+base,CsF,[Cs+].[F-],
+base,Et3N,CCN(CC)CC,
+base,K3PO4,O=P([O-])([O-])[O-].[K+],
+base,KOH,[K+].[OH-],
+base,LiOtBu,CC(C)(C)[O-].[Li+],
+base,NaHCO3,O=C([O-])O.[Na+],
+base,NaOH,[Na+].[OH-],
+base,없음,,염기 없음
+solvent,DMF,CN(C)C=O,
+solvent,MeCN,CC#N,
+solvent,MeOH,CO,
+solvent,MeOH/H2O_V2 9:1,CO,메탄올/물 9:1. 출발물질 1e와만 쓰임
+solvent,THF,C1CCOC1,
+solvent,THF_V2,C1CCOC1,출발물질 1e와만 쓰임
