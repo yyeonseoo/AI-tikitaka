@@ -130,7 +130,8 @@ def condition_average(d, slots, group, tr_idx, ap_idx):
 
 
 def fit_predict(make, p, X_tr, y_tr, X_ap):
-    return np.clip(make(p).fit(X_tr, y_tr).predict(X_ap), 0, 100)
+    # plain arrays: SMILES-based column names contain characters LightGBM rejects
+    return np.clip(make(p).fit(np.asarray(X_tr, float), np.asarray(y_tr, float)).predict(np.asarray(X_ap, float)), 0, 100)
 
 
 # ---------------- one split ----------------
