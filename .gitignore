@@ -3,3 +3,4 @@ data/
 *.log
 __pycache__/
 pce/models/v2/cache/
+reaction/cache/

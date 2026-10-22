@@ -2,7 +2,9 @@
 Suzuki confirmation. Model families are fixed in advance; inner cross-validation only picks each model's settings.
 Outer: 5 group folds (same seed and fold function as model.py). Inner: leave-one-group-out over the training groups
 (5-fold by row for the random split). Reagent SMILES for Suzuki: reaction/reagents_sm.csv; knowledge: reaction/knowledge.csv.
-Usage: python reaction/model2.py   (-> reaction/results_model2.md, reaction/figures/model2_*.png)"""
+Usage: python reaction/model2.py   (-> reaction/results_model2.md, reaction/figures/model2_*.png)
+Each finished outer fold is saved to reaction/cache/model2/; rerunning skips finished folds, so the run can be stopped anytime."""
+import pickle
 import sys
 import time
 from pathlib import Path
@@ -29,7 +31,7 @@ from eda import md  # noqa: E402
 from model import boot_ci, fmt, folds, onehot, per_group_mae, ridge_pairs, target_means  # noqa: E402
 from prepare import BH_SLOTS, SM_SLOTS, descriptors, load_bh, load_sm  # noqa: E402
 
-OUT, FIG = ROOT / "results_model2.md", ROOT / "figures"
+OUT, FIG, CACHE = ROOT / "results_model2.md", ROOT / "figures", ROOT / "cache" / "model2"
 SEED, N_CFG = 0, 30
 BLUE, ORANGE, GRAY = "#2a78d6", "#eb6834", "#9a9893"
 plt.rcParams["font.family"] = "Malgun Gothic"
@@ -131,6 +133,14 @@ def run_split(name, d, slots, group, D, K):
     y_all = d.y.to_numpy(float)
     pred, chosen = {}, []
     for f, tr, va, te in folds(d, group, rng):
+        ck = CACHE / f"{name.split(' (')[0].replace(' ', '_')}_fold{f}.pkl"  # one checkpoint per outer fold
+        if ck.exists():
+            saved, row = pickle.loads(ck.read_bytes())
+            for k, p in saved.items():
+                pred.setdefault(k, np.full(len(d), np.nan))[te] = p
+            chosen.append(row)
+            print(f"  {name} fold {f}: loaded from checkpoint", flush=True)
+            continue
         trn = np.concatenate([tr, va])  # outer training = train + validation groups of model.py
         ytr = y_all[trn]
         if group:
@@ -160,6 +170,9 @@ def run_split(name, d, slots, group, D, K):
             pred.setdefault(mname, np.full(len(d), np.nan))[te] = fit_predict(kind, p, Xa[trn], ytr, Xa[te], mo)
             row[mname] = round(min(scores), 2)
         chosen.append(row)
+        CACHE.mkdir(parents=True, exist_ok=True)
+        ck.write_bytes(pickle.dumps(({k: v[te] for k, v in pred.items()}, row)))
+        print(f"  {name} fold {f}: done", flush=True)
     return pred, pd.DataFrame(chosen)
 
 
