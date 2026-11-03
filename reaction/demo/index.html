@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReactPilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: instrument console. Left = reaction picker, centre = 3D bench + recommendation queue, right = gauges. */
+:root {
+  --bg: #eef1f4;
+  --panel: #ffffff;
+  --ink: #17212c;
+  --muted: #5d6b78;
+  --line: #d7dde4;
+  --accent: #1f4fd1;
+  --accent-soft: #e3eafc;
+  --signal: #c96a12;
+  --good: #1d8a5b;
+  --bench: #f7f9fb;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1319; --panel: #151c24; --ink: #e4e9ef; --muted: #93a1af; --line: #283340;
+    --accent: #7d9bff; --accent-soft: #1d2a47; --signal: #f0a04b; --good: #4cc48d; --bench: #10161d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1319; --panel: #151c24; --ink: #e4e9ef; --muted: #93a1af; --line: #283340;
+  --accent: #7d9bff; --accent-soft: #1d2a47; --signal: #f0a04b; --good: #4cc48d; --bench: #10161d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 14px/1.55 var(--font-ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { max-width: 1440px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+header.top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+header.top h1 span { color: var(--accent); }
+header.top p { margin: 0; color: var(--muted); max-width: 70ch; }
+
+.console { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 1180px) { .console { grid-template-columns: 230px minmax(0, 1fr); } .gauges { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .console { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.panel > .head { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.console > *, .bench > *, .gauges > * { min-width: 0; }
+.group-label { grid-column: 1 / -1; }
+.panel > .head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+
+/* picker */
+.picker .list { display: grid; gap: 2px; padding: 6px; max-height: 760px; overflow-y: auto; }
+@media (max-width: 760px) { .picker .list { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); max-height: 300px; } }
+.group-label { padding: 10px 8px 4px; }
+.pick { text-align: left; background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 8px 10px; display: grid; gap: 2px; }
+.pick:hover { background: var(--bench); }
+.pick[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.pick .a { font-weight: 600; font-size: 13px; }
+.pick .b { color: var(--muted); font-size: 12px; }
+.tag { display: inline-block; font-size: 10.5px; padding: 1px 6px; border-radius: 99px; border: 1px solid var(--signal); color: var(--signal); margin-left: 4px; font-weight: 600; vertical-align: 1px; }
+
+/* bench */
+.bench { display: grid; gap: 16px; min-width: 0; }
+.viewer-wrap { position: relative; }
+#viewer { position: relative; width: 100%; height: 380px; background: var(--bench); border-radius: 0 0 10px 10px; }
+@media (max-width: 760px) { #viewer { height: 300px; } }
+.viewer-caption { position: absolute; left: 14px; bottom: 12px; pointer-events: none; display: grid; gap: 2px; z-index: 2; }
+.viewer-caption b { font-size: 16px; }
+.viewer-caption span { color: var(--muted); font-size: 12px; max-width: 46ch; }
+.legend { position: absolute; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px 10px; justify-content: flex-end; max-width: 50%; z-index: 2; pointer-events: none; }
+.legend i { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-size: 11px; color: var(--muted); font-family: var(--font-data); }
+.legend i::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c); border: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.chip { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 4px 11px; font-size: 12.5px; display: inline-flex; gap: 6px; align-items: baseline; }
+.chip small { color: var(--muted); font-size: 11px; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.chip:disabled { opacity: .45; cursor: default; }
+.styles { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.styles button { border: 0; background: transparent; padding: 3px 9px; font-size: 12px; color: var(--muted); }
+.styles button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); }
+
+.run { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.primary { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 600; }
+:root[data-theme="dark"] .primary { color: #0e1319; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .primary { color: #0e1319; } }
+.primary:disabled { opacity: .45; cursor: default; }
+.ghost { background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.meter { flex: 1 1 160px; min-width: 140px; display: grid; gap: 4px; }
+.meter .bar { height: 6px; border-radius: 99px; background: var(--bench); border: 1px solid var(--line); overflow: hidden; }
+.meter .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+
+.queues { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .queues { grid-template-columns: minmax(0, 1fr); } }
+.queue { padding: 10px 14px 14px; min-width: 0; }
+.queue + .queue { border-left: 1px solid var(--line); }
+@media (max-width: 900px) { .queue + .queue { border-left: 0; border-top: 1px solid var(--line); } }
+.queue h3 { margin: 4px 0 8px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+.queue h3 small { color: var(--muted); font-weight: 400; }
+table { width: 100%; border-collapse: collapse; }
+td, th { padding: 6px 6px; text-align: left; font-size: 12.5px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 11px; color: var(--muted); font-weight: 600; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--bench); }
+tbody tr.sel { background: var(--accent-soft); }
+td.r { text-align: right; }
+.next-mark { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: 2px; }
+.ybar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; min-width: 90px; }
+.ybar span { height: 5px; background: var(--accent); border-radius: 99px; opacity: .55; }
+.ybar.actual span { background: var(--signal); opacity: .8; }
+.star { color: var(--good); font-weight: 700; }
+.empty { color: var(--muted); font-size: 12.5px; padding: 12px 0; }
+.scroll { max-height: 330px; overflow: auto; }
+.fact b.word { font-family: var(--font-ui); }
+
+/* gauges */
+.gauges { display: grid; gap: 16px; min-width: 0; }
+.status { padding: 14px; display: grid; gap: 12px; }
+.big { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.big .v { font-family: var(--font-data); font-size: 34px; font-weight: 600; letter-spacing: -.02em; }
+.big .u { color: var(--muted); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+.pill.ok { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.pill.wait { background: var(--bench); color: var(--muted); border: 1px solid var(--line); }
+.pill.warn { background: color-mix(in srgb, var(--signal) 15%, transparent); color: var(--signal); }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.compare div { background: var(--bench); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.compare b { display: block; font-family: var(--font-data); font-size: 18px; }
+.compare span { font-size: 11.5px; color: var(--muted); }
+#chart { width: 100%; height: auto; display: block; }
+.chart-wrap { padding: 8px 10px 4px; }
+.toggles { display: flex; gap: 12px; flex-wrap: wrap; padding: 0 14px 12px; font-size: 12px; color: var(--muted); }
+.toggles label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.key { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--c); vertical-align: middle; }
+.key.dash { border-top-style: dashed; }
+.facts { padding: 4px 14px 14px; display: grid; gap: 0; }
+.fact { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 9px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.fact:last-child { border-bottom: 0; }
+.fact b { font-family: var(--font-data); font-size: 15px; text-align: right; }
+.fact small { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; }
+.note { padding: 12px 14px; font-size: 12px; color: var(--muted); display: grid; gap: 6px; }
+.note p { margin: 0; }
+abbr[title] { text-decoration: underline dotted; text-underline-offset: 2px; cursor: help; }
+@media (prefers-reduced-motion: reduce) { .meter .bar > div { transition: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>React<span>Pilot</span></h1>
+  <p>새 반응이 들어오면 384가지 실험 조건 중 무엇부터 해볼지 AI가 추천합니다. 반응을 고르고, 추천대로 실험을 진행해 보세요. 실제 수율은 Pfizer가 공개한 Suzuki 반응 실험 데이터에서 꺼내 옵니다.</p>
+</header>
+
+<main class="console">
+  <section class="panel picker" aria-labelledby="picker-h">
+    <div class="head"><h2 id="picker-h">① 반응 고르기</h2><span class="eyebrow">15개</span></div>
+    <div class="list" id="pairs"></div>
+  </section>
+
+  <section class="bench">
+    <div class="panel">
+      <div class="head">
+        <h2>② 분자 살펴보기 <small class="eyebrow" style="margin-left:6px">드래그로 회전 · 스크롤로 확대</small></h2>
+        <div class="styles" role="group" aria-label="3D 표시 방식">
+          <button type="button" id="st-stick" aria-pressed="true">막대-공</button>
+          <button type="button" id="st-sphere" aria-pressed="false">공간 채움</button>
+          <button type="button" id="st-line" aria-pressed="false">선</button>
+        </div>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="볼 분자"></div>
+      <div class="viewer-wrap">
+        <div id="viewer" aria-label="3D 분자 뷰어"></div>
+        <div class="viewer-caption"><b id="mol-name"></b><span id="mol-note"></span></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="run">
+        <button class="primary" type="button" id="step">추천 4개 실험하기</button>
+        <button class="ghost" type="button" id="reset">처음부터</button>
+        <div class="meter">
+          <div style="display:flex;justify-content:space-between"><span class="eyebrow">실험 진행</span><span class="num" id="progress-t">0 / 40</span></div>
+          <div class="bar"><div id="progress"></div></div>
+        </div>
+      </div>
+      <div class="queues">
+        <div class="queue">
+          <h3>③ AI 추천 순위 <small id="queue-sub">아직 안 한 조건 중 예상 수율 순</small></h3>
+          <div class="scroll"><table>
+            <thead><tr><th>#</th><th><abbr title="팔라듐 촉매에 붙어 반응성을 조절하는 분자">리간드</abbr></th><th><abbr title="반응을 진행시키는 염기성 시약">염기</abbr></th><th><abbr title="반응이 일어나는 액체">용매</abbr></th><th>예상 수율</th></tr></thead>
+            <tbody id="queue"></tbody>
+          </table></div>
+        </div>
+        <div class="queue">
+          <h3>실험 기록 <small>실제 수율</small></h3>
+          <div class="scroll"><table>
+            <thead><tr><th>회차</th><th>조건</th><th>실제 수율</th></tr></thead>
+            <tbody id="log"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="gauges">
+    <div class="panel">
+      <div class="head"><h2>이 반응의 진행 상황</h2><span class="pill wait" id="found-pill">탐색 중</span></div>
+      <div class="status">
+        <div>
+          <span class="eyebrow">지금까지 찾은 최고 수율</span>
+          <div class="big"><span class="v" id="best-now">–</span><span class="u" id="best-of"></span></div>
+        </div>
+        <div class="compare">
+          <div><b id="ai-n">–</b><span>AI 추천으로 최고 근처 조건까지 실험 수</span></div>
+          <div><b id="rnd-n">–</b><span>무작위로 고를 때 평균 실험 수</span></div>
+        </div>
+      </div>
+      <div class="chart-wrap"><svg id="chart" viewBox="0 0 320 200" role="img" aria-label="실험 수에 따른 최고 수율 그래프"></svg></div>
+      <div class="toggles">
+        <label><span class="key" style="--c:var(--accent)"></span>AI 추천</label>
+        <label><input type="checkbox" id="tg-random" checked><span class="key dash" style="--c:var(--muted)"></span>무작위 (기댓값)</label>
+        <label><input type="checkbox" id="tg-history"><span class="key" style="--c:var(--signal)"></span>예전에 잘 된 순서</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="head"><h2>이 반응은 AI에게 얼마나 익숙한가</h2></div>
+      <div class="facts" id="familiar"></div>
+    </div>
+
+    <div class="panel">
+      <div class="head"><h2>엔진 검증 성적</h2><span class="eyebrow">처음 보는 반응 15개</span></div>
+      <div class="facts">
+        <div class="fact"><span>추천 상위 20개 안에 최고 근처 조건</span><b>87%</b><small>무작위로 20개 고르면 38%. 6차 실험.</small></div>
+        <div class="fact"><span>최고 근처 조건까지 실험 수</span><b>14회</b><small>무작위 27회의 약 절반. 5차 실험, 첫 4개는 무작위로 시작한 조건.</small></div>
+        <div class="fact"><span>같은 분자 정보를 쓴 선형 회귀 대비</span><b class="word">우수</b><small>상위 8개 추천의 최고 수율 차이 10.4%p, 95% 구간 [2.7, 20.3]. 실험 전에 정한 판정 기준 통과.</small></div>
+        <div class="fact"><span>약점</span><b>3/15</b><small>퀴놀린 쪽이 붕소 화합물인 반응(역할 반전)은 40회 안에 최고 근처를 못 찾음.</small></div>
+      </div>
+      <div class="note">
+        <p>"최고 근처" = 그 반응에서 가능한 최고 수율과 5%p 이내인 조건.</p>
+        <p>모든 추천은 그 반응을 학습에서 완전히 뺀 모델이 만듭니다. 정답을 보고 추천하지 않습니다.</p>
+        <p>이 데모는 첫 4개도 AI 추천으로 시작하므로, 위 5차 숫자(무작위 시작)보다 빨리 찾을 수 있습니다.</p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.1.0/build/3Dmol-min.js"></script>
+<script src="data.js"></script>
+<script>
+const D = window.DEMO;
+const N_MAX = 40, BATCH = 4, NEAR = 5;
+const SLOT_KO = { electrophile: "출발물질 (퀴놀린 쪽)", nucleophile: "출발물질 (인다졸 쪽)", ligand: "리간드", base: "염기", solvent: "용매" };
+const NICK = {
+  "1a, 6-Cl-Q": "6-클로로퀴놀린", "1b, 6-Br-Q": "6-브로모퀴놀린", "1c, 6-OTf-Q": "퀴놀린 트리플레이트", "1d, 6-I-Q": "6-아이오도퀴놀린",
+  "1e, 6-BOH2-Q": "퀴놀린 보론산", "1f, 6-BPin-Q": "퀴놀린 보론산 에스터", "1g, 6-BF3K-Q": "퀴놀린 BF₃K",
+  "2a, Boronic Acid": "인다졸 보론산", "2b, Boronic Ester": "인다졸 보론산 에스터", "2c, Trifluoroborate": "인다졸 BF₃K", "2d, Bromide": "인다졸 브로마이드"
+};
+const ELEM = { C: ["#909090", "탄소"], H: ["#f2f2f2", "수소"], N: ["#3050f8", "질소"], O: ["#ff0d0d", "산소"], P: ["#ff8000", "인"], S: ["#ffff30", "황"],
+  F: ["#90e050", "플루오린"], Cl: ["#1ff01f", "염소"], Br: ["#a62929", "브로민"], I: ["#940094", "아이오딘"], B: ["#ffb5b5", "붕소"],
+  Fe: ["#e06633", "철"], K: ["#8f40d4", "칼륨"], Na: ["#ab5cf2", "나트륨"], Cs: ["#57178f", "세슘"], Li: ["#cc80ff", "리튬"] };
+
+const $ = id => document.getElementById(id);
+const state = { pair: 0, round: 0, mol: null, sel: null, style: "stick" };
+const P = () => D.pairs[state.pair];
+const molKey = (slot, name) => `${slot}|${name}`;
+const nick = n => NICK[n] || n;
+
+/* ---------- picker ---------- */
+function renderPicker() {
+  const host = $("pairs"); host.innerHTML = "";
+  let last = null;
+  const order = D.pairs.map((p, i) => i).sort((a, b) => D.pairs[a].id.localeCompare(D.pairs[b].id));
+  order.forEach(i => {
+    const p = D.pairs[i];
+    const grp = p.nucleophile === "2d, Bromide" ? "역할 반전 반응" : nick(p.electrophile).replace(/^6-/, "");
+    if (grp !== last) { const g = document.createElement("div"); g.className = "group-label eyebrow"; g.textContent = grp; host.append(g); last = grp; }
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "pick"; b.setAttribute("aria-pressed", i === state.pair);
+    b.innerHTML = `<span class="a">${nick(p.electrophile)}${p.familiar.roleSwapped ? '<span class="tag">어려움</span>' : ""}</span><span class="b">+ ${nick(p.nucleophile)}</span>`;
+    b.onclick = () => { state.pair = i; state.round = 0; state.sel = null; state.mol = molKey("electrophile", p.electrophile); renderAll(); };
+    host.append(b);
+  });
+}
+
+/* ---------- 3D ---------- */
+let viewer = null;
+function styleSpec() {
+  if (state.style === "sphere") return { sphere: { scale: 0.95 } };
+  if (state.style === "line") return { line: { linewidth: 2 } };
+  return { stick: { radius: 0.14 }, sphere: { scale: 0.26 } };
+}
+function showMol() {
+  const m = D.mols[state.mol];
+  $("mol-name").textContent = m ? nick(m.name).replace("_V2", "") : "";
+  $("mol-note").textContent = m ? `${SLOT_KO[m.slot]}${m.note ? " · " + m.note : ""}` : "";
+  const legend = $("legend"); legend.innerHTML = "";
+  if (!viewer) return;
+  viewer.clear();
+  if (m && m.mol) {
+    viewer.addModel(m.mol, "sdf");
+    viewer.setStyle({}, styleSpec());
+    viewer.zoomTo(); viewer.zoom(0.9); viewer.render();
+    const els = [...new Set(m.mol.split("\n").slice(4).map(l => l.slice(31, 34).trim()).filter(e => ELEM[e]))];
+    els.forEach(e => { const i = document.createElement("i"); i.style.setProperty("--c", ELEM[e][0]); i.textContent = `${e} ${ELEM[e][1]}`; legend.append(i); });
+  } else {
+    viewer.render();
+    $("mol-note").textContent = "이 칸은 시약을 넣지 않은 조건입니다";
+  }
+}
+function setStyle(s) {
+  state.style = s;
+  ["stick", "sphere", "line"].forEach(k => $("st-" + k).setAttribute("aria-pressed", k === s));
+  showMol();
+}
+
+/* ---------- chips: molecules of the pair + the selected condition ---------- */
+function renderChips() {
+  const p = P(), host = $("chips"); host.innerHTML = "";
+  const items = [["electrophile", p.electrophile], ["nucleophile", p.nucleophile]];
+  if (state.sel !== null) { const c = p.conds[state.sel]; items.push(["ligand", c[0]], ["base", c[1]], ["solvent", c[2]]); }
+  items.forEach(([slot, name]) => {
+    const k = molKey(slot, name), m = D.mols[k];
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", k === state.mol);
+    b.innerHTML = `<small>${SLOT_KO[slot].split(" ")[0]}</small>${nick(name).replace("_V2", "")}`;
+    if (!m || !m.mol) b.disabled = true;
+    b.onclick = () => { state.mol = k; renderChips(); showMol(); };
+    host.append(b);
+  });
+  if (state.sel === null) {
+    const hint = document.createElement("span"); hint.className = "chip"; hint.style.border = "1px dashed var(--line)";
+    hint.innerHTML = "<small>조건</small>표에서 조건을 누르면 리간드·염기·용매가 여기 나옵니다"; host.append(hint);
+  }
+}
+
+/* ---------- queue + log ---------- */
+function done() { return P().order.slice(0, state.round * BATCH); }
+function renderTables() {
+  const p = P(), d = done(), dset = new Set(d);
+  const pred = p.preds[Math.min(state.round, p.preds.length - 1)];
+  const rest = pred.map((v, i) => [v, i]).filter(([, i]) => !dset.has(i)).sort((a, b) => b[0] - a[0]);
+  const q = $("queue"); q.innerHTML = "";
+  const finished = state.round * BATCH >= N_MAX;
+  $("queue-sub").textContent = finished ? "실험 40회를 모두 썼습니다" : `실험 ${d.length}회 결과를 반영한 예측`;
+  rest.slice(0, 16).forEach(([v, i], r) => {
+    const c = p.conds[i], tr = document.createElement("tr");
+    if (i === state.sel) tr.className = "sel";
+    const next = !finished && r < BATCH;
+    tr.innerHTML = `<td class="num">${next ? '<span class="next-mark" title="이번에 실험할 조건"></span>' : ""}${r + 1}</td><td>${c[0]}</td><td>${c[1]}</td><td>${c[2].replace("_V2", "")}</td>
+      <td><div class="ybar"><span style="width:${Math.max(4, v)}%"></span><b class="num">${v.toFixed(0)}%</b></div></td>`;
+    tr.onclick = () => selectCond(i);
+    q.append(tr);
+  });
+  const log = $("log"); log.innerHTML = "";
+  if (!d.length) log.innerHTML = '<tr><td colspan="3" class="empty">아직 실험하지 않았습니다. 왼쪽 위 버튼으로 추천 4개를 실험해 보세요.</td></tr>';
+  let best = -1, bestI = null;
+  d.forEach(i => { if (p.y[i] > best) { best = p.y[i]; bestI = i; } });
+  [...d].reverse().forEach((i, k) => {
+    const idx = d.length - k, c = p.conds[i], tr = document.createElement("tr");
+    if (i === state.sel) tr.className = "sel";
+    tr.innerHTML = `<td class="num">${Math.ceil(idx / BATCH)}-${(idx - 1) % BATCH + 1}</td><td>${c[0]} · ${c[1]} · ${c[2].replace("_V2", "")}</td>
+      <td><div class="ybar actual"><span style="width:${Math.max(4, p.y[i])}%"></span><b class="num">${p.y[i].toFixed(0)}%${i === bestI ? ' <span class="star" title="지금까지 최고">★</span>' : ""}</b></div></td>`;
+    tr.onclick = () => selectCond(i);
+    log.append(tr);
+  });
+}
+function selectCond(i) {
+  state.sel = i;
+  state.mol = molKey("ligand", P().conds[i][0]);
+  renderChips(); renderTables(); showMol();
+}
+
+/* ---------- gauges ---------- */
+function renderStatus() {
+  const p = P(), d = done(), n = d.length;
+  $("progress-t").textContent = `${n} / ${N_MAX}`;
+  $("progress").style.width = `${(n / N_MAX) * 100}%`;
+  $("step").disabled = n >= N_MAX;
+  $("step").textContent = n === 0 ? "추천 4개 실험하기" : n >= N_MAX ? "실험 완료" : "다음 4개 실험하기";
+  const best = n ? Math.max(...d.map(i => p.y[i])) : null;
+  $("best-now").textContent = best === null ? "–" : `${best.toFixed(1)}%`;
+  $("best-of").textContent = best === null ? "실험 전" : `가능한 최고 ${p.best.toFixed(1)}% (데이터에만 있는 정답)`;
+  const found = p.aiFound && n >= p.aiFound;
+  const pill = $("found-pill");
+  if (found) { pill.className = "pill ok"; pill.textContent = `${p.aiFound}번째 실험에서 최고 근처 발견`; }
+  else if (n >= N_MAX) { pill.className = "pill warn"; pill.textContent = "40회 안에 못 찾음"; }
+  else { pill.className = "pill wait"; pill.textContent = "탐색 중"; }
+  $("ai-n").textContent = found ? `${p.aiFound}회` : n >= N_MAX ? "40회+" : "?";
+  $("rnd-n").textContent = p.randomExpected > N_MAX ? `${Math.round(p.randomExpected)}회` : `${p.randomExpected}회`;
+  renderChart();
+}
+function renderChart() {
+  const p = P(), svg = $("chart"), n = done().length;
+  const W = 320, H = 200, L = 34, R = 10, T = 12, B = 28;
+  const x = i => L + ((i - 1) / (N_MAX - 1)) * (W - L - R), y = v => T + (1 - v / 100) * (H - T - B);
+  const path = arr => arr.map((v, i) => `${i ? "L" : "M"}${x(i + 1).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  let g = "";
+  [0, 25, 50, 75, 100].forEach(v => { g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" font-size="9.5" fill="var(--muted)" font-family="var(--font-data)">${v}</text>`; });
+  [1, 10, 20, 30, 40].forEach(i => { g += `<text x="${x(i)}" y="${H - B + 14}" text-anchor="middle" font-size="9.5" fill="var(--muted)" font-family="var(--font-data)">${i}</text>`; });
+  g += `<text x="${(L + W - R) / 2}" y="${H - 3}" text-anchor="middle" font-size="10" fill="var(--muted)">실험 수</text>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${y(p.best)}" y2="${y(p.best)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="2 3"/><text x="${W - R}" y="${y(p.best) - 4}" text-anchor="end" font-size="9.5" fill="var(--good)">가능한 최고 ${p.best.toFixed(0)}%</text>`;
+  if ($("tg-random").checked) g += `<path d="${path(p.curves.random)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  if ($("tg-history").checked) g += `<path d="${path(p.curves.history)}" fill="none" stroke="var(--signal)" stroke-width="1.5"/>`;
+  if (n) {
+    const ai = p.curves.ai.slice(0, n);
+    g += `<path d="${path(ai)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    g += `<circle cx="${x(n)}" cy="${y(ai[n - 1])}" r="4" fill="var(--accent)" stroke="var(--panel)" stroke-width="1.5"/>`;
+  }
+  svg.innerHTML = g;
+}
+function renderFamiliar() {
+  const f = P().familiar, host = $("familiar");
+  const level = f.roleSwapped ? ["warn", "처음 보는 유형"] : f.sameElectrophile >= 2 ? ["ok", "익숙한 유형"] : ["wait", "보통"];
+  host.innerHTML = `
+    <div class="fact"><span>판단</span><b><span class="pill ${level[0]}">${level[1]}</span></b>
+      <small>학습 데이터에 비슷한 반응이 몇 개 있었는지로만 판단합니다. AI 점수 기반 신뢰도는 검증에서 작동하지 않아 쓰지 않습니다.</small></div>
+    <div class="fact"><span>같은 퀴놀린 쪽 출발물질을 쓴 학습 반응</span><b>${f.sameElectrophile}개</b></div>
+    <div class="fact"><span>같은 인다졸 쪽 출발물질을 쓴 학습 반응</span><b>${f.sameNucleophile}개</b>
+      ${f.roleSwapped ? "<small>퀴놀린 쪽이 붕소 화합물인 반응은 학습 데이터에서 반응 방향이 반대라 AI가 특히 어려워합니다.</small>" : ""}</div>`;
+}
+
+function renderAll() {
+  renderPicker(); renderChips(); renderTables(); renderStatus(); renderFamiliar(); showMol();
+}
+
+/* ---------- wiring ---------- */
+$("step").onclick = () => { if (state.round * BATCH < N_MAX) { state.round++; renderTables(); renderStatus(); } };
+$("reset").onclick = () => { state.round = 0; state.sel = null; state.mol = molKey("electrophile", P().electrophile); renderChips(); renderTables(); renderStatus(); showMol(); };
+$("tg-random").onchange = renderChart; $("tg-history").onchange = renderChart;
+["stick", "sphere", "line"].forEach(k => $("st-" + k).onclick = () => setStyle(k));
+
+state.mol = molKey("electrophile", P().electrophile);
+if (window.$3Dmol) {
+  viewer = $3Dmol.createViewer($("viewer"), { backgroundAlpha: 0, backgroundColor: "white" });
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) viewer.spin("y", 0.4);
+  $("viewer").addEventListener("pointerdown", () => viewer.spin(false), { once: true });
+} else {
+  $("viewer").innerHTML = '<p class="empty" style="padding:16px">3D 뷰어를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침하세요.</p>';
+}
+renderAll();
+</script>
+</body>
+</html>

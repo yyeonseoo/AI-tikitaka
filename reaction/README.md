@@ -612,6 +612,7 @@ SM 처음 보는 출발물질 15쌍 평균: regret@8 R0 9.71 → K0 7.81, 상위
 | `model2.py` | 2차: 화학 지식, 그룹 하나 빼기 검증, SM 확인. `--mlp`로 신경망 포함 (약 3시간) | [results_model2.md](results_model2.md), `figures/model2_summary.png` |
 | `model3.py` | 3차: 처음 보는 고리 구조. `--mlp`로 신경망 포함 (약 25분) | [results_model3.md](results_model3.md) |
 | `model4.py` | 4차: 조건 추천 (regret@3), 화학자 규칙 모델, 무작위 지문 (약 17분) | [results_model4.md](results_model4.md), `figures/model4_topk.png` |
+| `demo_data.py`, `demo/` | 웹 데모 ReactPilot: Suzuki 15쌍 추천·순차 실험 시뮬레이션, 3D 분자 뷰어. `python reaction/demo_data.py`로 `demo/data.js` 생성 (약 2분), `demo/index.html`을 브라우저로 열기 (3D 뷰어·글꼴은 인터넷 필요) | `demo/index.html` |
 | `model9.py` | 9차: 튜닝한 순위 학습 vs 튜닝한 회귀 (중첩 검증, 약 13분) | [results_model9.md](results_model9.md) |
 | `model8.py` | 8차: 순위 학습 확인 (처음 보는 출발물질), 합의율 신뢰도 경고 (약 1.5분) | [results_model8.md](results_model8.md) |
 | `model7.py` | 7차: 추천 엔진 (순위 학습, 과거 평균 특성, 신뢰도 경고) ablation (약 1.5분) | [results_model7.md](results_model7.md) |
