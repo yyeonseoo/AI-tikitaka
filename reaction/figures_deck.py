@@ -266,6 +266,23 @@ def fig_sequential():
     save(fig, "sequential")
 
 
+def fig_engine():
+    # results_model7/8/9.md: SM regret@8 (gap between the best yield and the best of the top 8), regression vs ranking
+    t = [("처음 보는 반응" + chr(10) + "(7차)", 4.98, 2.64), ("처음 보는 출발물질" + chr(10) + "(8차)", 9.71, 7.81),
+         ("처음 보는 출발물질" + chr(10) + "튜닝 후 (9차)", 9.54, 7.65)]
+    fig, ax = plt.subplots(figsize=fs(9, 4.8))
+    x = np.arange(len(t))
+    for k, (lab, c) in enumerate((("수율 회귀 (버전 1)", SIMPLE), ("순위 학습 (버전 2)", ML))):
+        v = [r[k + 1] for r in t]
+        ax.bar(x + (k - 0.5) * 0.36, v, 0.34, color=c, label=lab)
+        for xi, vi in zip(x, v):
+            ax.text(xi + (k - 0.5) * 0.36, vi + 0.2, f"{vi:.1f}", ha="center", fontsize=14, color=INK2)
+    ax.set(xticks=x, xticklabels=[r[0] for r in t], ylim=(0, 12), ylabel="상위 8개 추천의 놓친 수율 (%p)")
+    ax.legend(frameon=False, ncol=2, loc="upper center", bbox_to_anchor=(0.5, 1.14), fontsize=14)
+    style(ax, "y")
+    save(fig, "engine")
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     bh, sm = load_bh(), load_sm()
@@ -278,6 +295,7 @@ def main():
     fig_chem_sm(sm)
     fig_recommend()
     fig_sequential()
+    fig_engine()
     beeswarm(bh, desc_bh(bh).join(knowledge_bh(bh)), "bh")
     beeswarm(sm, desc_sm(sm).join(knowledge_sm(sm)), "sm")
     print("saved", sorted(p.name for p in OUT.glob("*.png")))
