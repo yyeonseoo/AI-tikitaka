@@ -236,6 +236,36 @@ def fig_chem_sm(sm):
     save(fig, "chem_sm")
 
 
+def fig_recommend():
+    # results_model6.md: SM, 384 conditions, unseen pair, share of pairs whose top 20 holds a near-best condition
+    t = [("무작위", 38, SIMPLE), ("예전에 잘 된 순서", 60, SIMPLE), ("선형 회귀 + 분자 특성", 53, RIDGE), ("LightGBM + 분자 특성", 87, ML)]
+    fig, ax = plt.subplots(figsize=fs(8, 3.6))
+    y = np.arange(len(t))[::-1]
+    ax.barh(y, [v for _, v, _ in t], color=[c for *_, c in t], height=0.62)
+    for yi, (_, v, _) in zip(y, t):
+        ax.text(v + 1.5, yi, f"{v}%", va="center", fontsize=15, color=INK, fontweight="bold" if v == 87 else "normal")
+    ax.set(yticks=y, yticklabels=[n for n, *_ in t], xlim=(0, 100), xlabel="추천 상위 20개 안에 최고 근처(5%p 이내) 조건이 있는 비율")
+    style(ax)
+    save(fig, "recommend")
+
+
+def fig_sequential():
+    # plan 5 checkpoints (reaction/cache/model5): warm start, greedy picks, best-so-far gap averaged over 15 pairs x 10 seeds
+    from model5 import history_order, table, traces
+    d = load_sm()
+    runs = {m: traces(d, None, "warm", k, 0.0) for m, k in (("LightGBM", "LightGBM"), ("선형 모델", "선형 모델"))}
+    runs["예전에 잘 된 순서"] = history_order(d)
+    T = table(d, runs)
+    fig, ax = plt.subplots(figsize=fs(8, 4.4))
+    n = np.arange(1, 41)
+    for m, c, ls in (("무작위", SIMPLE, "--"), ("예전에 잘 된 순서", ORANGE, "-"), ("선형 모델", RIDGE, "-"), ("LightGBM", ML, "-")):
+        ax.plot(n, np.mean(np.stack(T[T.method == m].curve), 0), color=c, lw=3 if m == "LightGBM" else 2, ls=ls, label=m)
+    ax.set(xlim=(1, 40), ylim=(0, 52), xlabel="실험 수", ylabel="최고 수율과의 차이 (%p)")
+    ax.legend(frameon=False, fontsize=13, loc="upper right")
+    style(ax, "y")
+    save(fig, "sequential")
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     bh, sm = load_bh(), load_sm()
@@ -246,6 +276,8 @@ def main():
     fig_ablation()
     fig_chem_bh(bh)
     fig_chem_sm(sm)
+    fig_recommend()
+    fig_sequential()
     beeswarm(bh, desc_bh(bh).join(knowledge_bh(bh)), "bh")
     beeswarm(sm, desc_sm(sm).join(knowledge_sm(sm)), "sm")
     print("saved", sorted(p.name for p in OUT.glob("*.png")))
