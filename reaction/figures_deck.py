@@ -283,6 +283,25 @@ def fig_engine():
     save(fig, "engine")
 
 
+def fig_topk():
+    # plan 4 checkpoints (reaction/cache/model4): BH unseen substrate, chance that the top k holds the best condition
+    from model4 import context_table, predictions
+    d = load_bh()
+    P, _ = predictions(d, "aryl_halide")
+    T = context_table(d, P)
+    fig, ax = plt.subplots(figsize=fs(10, 4.8))
+    k = np.arange(1, 13)
+    for m, lab, c, w in (("무작위", "무작위", SIMPLE, 2), ("조건 평균", "조건 평균", RIDGE, 2),
+                         ("LightGBM + 무작위 지문 (3개 평균)", "LightGBM + 무작위 숫자 (대조군)", ORANGE, 2),
+                         ("LightGBM + 분자 특성", "LightGBM + 분자 특성", ML, 3.5)):
+        t = T[T.method == m]
+        ax.plot(k, [t[f"hit@{i}"].mean() * 100 for i in k], color=c, lw=w, marker="o", ms=5, label=lab)
+    ax.set(xticks=k, ylim=(0, 102), xlabel="추천 상위 k개 조건만 실험", ylabel="최고 조건이 포함될 확률 (%)")
+    ax.legend(frameon=False, fontsize=13, loc="lower right")
+    style(ax, "y")
+    save(fig, "topk")
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     bh, sm = load_bh(), load_sm()
@@ -296,6 +315,7 @@ def main():
     fig_recommend()
     fig_sequential()
     fig_engine()
+    fig_topk()
     beeswarm(bh, desc_bh(bh).join(knowledge_bh(bh)), "bh")
     beeswarm(sm, desc_sm(sm).join(knowledge_sm(sm)), "sm")
     print("saved", sorted(p.name for p in OUT.glob("*.png")))
