@@ -30,7 +30,10 @@ def fold_a(XF, XR, y, grp, d, g):
     threadpool_limits(1)
     hist, target = np.flatnonzero(grp != g), np.flatnonzero(grp == g)
     m = d.iloc[hist].groupby(COND).y.mean()
-    cm = d.iloc[target][COND].merge(m.rename("m"), how="left", left_on=COND, right_index=True).m.to_numpy()
+    ap = d.iloc[target]
+    cm = ap[COND].merge(m.rename("m"), how="left", left_on=COND, right_index=True).m.to_numpy()
+    m2 = ap[COND[:2]].merge(d.iloc[hist].groupby(COND[:2]).y.mean().rename("m"), how="left", left_on=COND[:2], right_index=True).m.to_numpy()
+    cm = np.where(np.isnan(cm), m2, cm)  # conditions unseen in history (1e solvent set) -> ligand x base mean, as model5
     P = {"조건 평균": cm,
          "능형 회귀 + 분자 표현": ridge_f1(XF, y, grp, hist, target)[0],
          "상호작용 선형 모델": np.clip(bayes_linear(XR[hist], y[hist], XR[target], "warm")[0], 0, 100),
