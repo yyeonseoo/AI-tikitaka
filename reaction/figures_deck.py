@@ -92,12 +92,12 @@ def fig_interaction():
     # in-sample R², results_eda.md
     fig, ax = plt.subplots(figsize=fs(7.2, 4.6))
     x = np.arange(2)
-    ax.bar(x - 0.19, [71, 51], 0.36, color=SIMPLE, label="시약 효과를 더하기만")
-    ax.bar(x + 0.19, [90, 78], 0.36, color=ML, label="시약 짝 효과까지")
+    ax.bar(x - 0.19, [71, 51], 0.36, color=SIMPLE, label="주효과 모델")
+    ax.bar(x + 0.19, [90, 78], 0.36, color=ML, label="2차 상호작용 모델")
     for i, (a, b) in enumerate([(71, 90), (51, 78)]):
         ax.text(i - 0.19, a + 1.5, f"{a}%", ha="center", fontsize=16, color=INK2)
         ax.text(i + 0.19, b + 1.5, f"{b}%", ha="center", fontsize=16, fontweight="bold", color=INK)
-    ax.set(xticks=x, xticklabels=["Buchwald–Hartwig", "Suzuki–Miyaura"], ylim=(0, 100), ylabel="설명되는 수율 차이 (%)")
+    ax.set(xticks=x, xticklabels=["Buchwald–Hartwig", "Suzuki–Miyaura"], ylim=(0, 100), ylabel="결정계수 R² (%)")
     ax.legend(frameon=False, ncol=2, loc="upper center", bbox_to_anchor=(0.5, 1.13), fontsize=14)
     style(ax, "y")
     save(fig, "interaction")
@@ -238,13 +238,13 @@ def fig_chem_sm(sm):
 
 def fig_recommend():
     # results_model6.md: SM, 384 conditions, unseen pair, share of pairs whose top 20 holds a near-best condition
-    t = [("무작위", 38, SIMPLE), ("예전에 잘 된 순서", 60, SIMPLE), ("선형 회귀 + 분자 특성", 53, RIDGE), ("LightGBM + 분자 특성", 87, ML)]
+    t = [("무작위", 38, SIMPLE), ("이력 기반 순위", 60, SIMPLE), ("능형 회귀 + 분자 표현", 53, RIDGE), ("LightGBM + 분자 표현", 87, ML)]
     fig, ax = plt.subplots(figsize=fs(8, 3.6))
     y = np.arange(len(t))[::-1]
     ax.barh(y, [v for _, v, _ in t], color=[c for *_, c in t], height=0.62)
     for yi, (_, v, _) in zip(y, t):
         ax.text(v + 1.5, yi, f"{v}%", va="center", fontsize=15, color=INK, fontweight="bold" if v == 87 else "normal")
-    ax.set(yticks=y, yticklabels=[n for n, *_ in t], xlim=(0, 100), xlabel="추천 상위 20개 안에 최고 근처(5%p 이내) 조건이 있는 비율")
+    ax.set(yticks=y, yticklabels=[n for n, *_ in t], xlim=(0, 100), xlabel="hit@20: 상위 20개 안에 준최적 조건(최고 대비 5%p 이내) 포함 비율 (%)")
     style(ax)
     save(fig, "recommend")
 
@@ -254,13 +254,13 @@ def fig_sequential():
     from model5 import history_order, table, traces
     d = load_sm()
     runs = {m: traces(d, None, "warm", k, 0.0) for m, k in (("LightGBM", "LightGBM"), ("선형 모델", "선형 모델"))}
-    runs["예전에 잘 된 순서"] = history_order(d)
+    runs["이력 기반 순위"] = history_order(d)
     T = table(d, runs)
     fig, ax = plt.subplots(figsize=fs(8, 4.4))
     n = np.arange(1, 41)
-    for m, c, ls in (("무작위", SIMPLE, "--"), ("예전에 잘 된 순서", ORANGE, "-"), ("선형 모델", RIDGE, "-"), ("LightGBM", ML, "-")):
-        ax.plot(n, np.mean(np.stack(T[T.method == m].curve), 0), color=c, lw=3 if m == "LightGBM" else 2, ls=ls, label=m)
-    ax.set(xlim=(1, 40), ylim=(0, 52), xlabel="실험 수", ylabel="최고 수율과의 차이 (%p)")
+    for m, c, ls in (("무작위", SIMPLE, "--"), ("이력 기반 순위", ORANGE, "-"), ("선형 모델", RIDGE, "-"), ("LightGBM", ML, "-")):
+        ax.plot(n, np.mean(np.stack(T[T.method == m].curve), 0), color=c, lw=3 if m == "LightGBM" else 2, ls=ls, label="상호작용 선형 모델" if m == "선형 모델" else m)
+    ax.set(xlim=(1, 40), ylim=(0, 52), xlabel="누적 실험 수", ylabel="regret (%p)")
     ax.legend(frameon=False, fontsize=13, loc="upper right")
     style(ax, "y")
     save(fig, "sequential")
@@ -291,12 +291,12 @@ def fig_topk():
     T = context_table(d, P)
     fig, ax = plt.subplots(figsize=fs(10, 4.8))
     k = np.arange(1, 13)
-    for m, lab, c, w in (("무작위", "무작위", SIMPLE, 2), ("조건 평균", "조건 평균", RIDGE, 2),
-                         ("LightGBM + 무작위 지문 (3개 평균)", "LightGBM + 무작위 숫자 (대조군)", ORANGE, 2),
-                         ("LightGBM + 분자 특성", "LightGBM + 분자 특성", ML, 3.5)):
+    for m, lab, c, w in (("무작위", "무작위", SIMPLE, 2), ("조건 평균", "조건 평균 기준선", RIDGE, 2),
+                         ("LightGBM + 무작위 지문 (3개 평균)", "LightGBM + 무작위 특성 (대조군)", ORANGE, 2),
+                         ("LightGBM + 분자 특성", "LightGBM + 분자 표현", ML, 3.5)):
         t = T[T.method == m]
         ax.plot(k, [t[f"hit@{i}"].mean() * 100 for i in k], color=c, lw=w, marker="o", ms=5, label=lab)
-    ax.set(xticks=k, ylim=(0, 102), xlabel="추천 상위 k개 조건만 실험", ylabel="최고 조건이 포함될 확률 (%)")
+    ax.set(xticks=k, ylim=(0, 102), xlabel="k (추천 상위 k개 조건만 실험)", ylabel="hit@k: 최적 조건 포함 확률 (%)")
     ax.legend(frameon=False, fontsize=13, loc="lower right")
     style(ax, "y")
     save(fig, "topk")
