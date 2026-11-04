@@ -26,6 +26,7 @@ from model5 import (BATCH, CACHE5, COND, KAPPA, N0, PAIR, ROUNDS, SEEDS, diff_ci
 from prepare import load_sm  # noqa: E402
 
 OUT, CACHE = ROOT / "results_model11.md", ROOT / "cache" / "model11"
+KFIT_N = 1500
 
 
 def kernel():
@@ -51,9 +52,11 @@ def run(X, y, hist, target, kappa, seed, pair_i, k):
     return np.array(done)
 
 
-def fit_kernel(X, y, hist):
+def fit_kernel(X, y, hist, i):
+    """Hyperparameters from a 1,500-row sample of the history (full 5,376 took > 30 min per pair)."""
     threadpool_limits(4)
-    return gp(X[hist], y[hist]).kernel_
+    sub = np.random.default_rng(i).choice(hist, KFIT_N, replace=False)
+    return gp(X[sub], y[sub]).kernel_
 
 
 def traces(d, X, y, key, scenario, kappa, kernels):
@@ -86,7 +89,7 @@ def main():
     kpath = CACHE / "warm_kernels.pkl"
     if not kpath.exists():
         pairs = list(pd.unique(key))
-        ks = Parallel(n_jobs=4)(delayed(fit_kernel)(Xw, y, np.flatnonzero(key != p)) for p in pairs)
+        ks = Parallel(n_jobs=4)(delayed(fit_kernel)(Xw, y, np.flatnonzero(key != p), i) for i, p in enumerate(pairs))
         CACHE.mkdir(parents=True, exist_ok=True)
         kpath.write_bytes(pickle.dumps(dict(zip(pairs, ks))))
     kw = pickle.loads(kpath.read_bytes())
