@@ -99,16 +99,18 @@ def main():
     runs = {}
     for a, k in acq.items():
         runs[f"GP 과거 없음 ({a})"] = traces(d, Xc, y, key, "cold", k, {})
-        runs[f"GP 과거 있음 ({a})"] = traces(d, Xw, y, key, "warm", k, kw)
+        if a == "탐욕":  # warm GP UCB stopped after 2 of 15 pairs (3-7 min per pair), left out
+            runs[f"GP 과거 있음 ({a})"] = traces(d, Xw, y, key, "warm", k, kw)
         runs[f"LightGBM 과거 없음 ({a})"] = lgbm_cached(key, "cold", k)
         runs[f"LightGBM 과거 있음 ({a})"] = lgbm_cached(key, "warm", k)
     T = table(d, runs)
 
     lw = "LightGBM 과거 있음 (탐욕)"
     V = [("**주**", lw, "GP 과거 없음 (UCB)"),
-         ("2차", lw, "GP 과거 있음 (탐욕)"), ("2차", "LightGBM 과거 있음 (UCB)", "GP 과거 있음 (UCB)"),
+         ("2차", lw, "GP 과거 있음 (탐욕)"), ("2차", "GP 과거 있음 (탐욕)", "GP 과거 없음 (UCB)"),
+         ("참고", "GP 과거 없음 (UCB)", "GP 과거 없음 (탐욕)"),
          ("참고", "LightGBM 과거 없음 (탐욕)", "GP 과거 없음 (탐욕)"), ("참고", "LightGBM 과거 없음 (UCB)", "GP 과거 없음 (UCB)")]
-    V += [("2차", f"GP {s} ({a})", "무작위") for s in ("과거 없음", "과거 있음") for a in acq]
+    V += [("2차", m, "무작위") for m in ("GP 과거 없음 (탐욕)", "GP 과거 없음 (UCB)", "GP 과거 있음 (탐욕)")]
     vt = "| 구분 | 비교 | regret@20 차이 (%p, 음수 = 앞이 좋음) | 결과 | 발견까지 실험 수 차이 |\n|---|---|---|---|---|\n"
     for lab, a, b in V:
         t, e = diff_ci(T, a, b, "regret@20"), diff_ci(T, a, b, "발견까지 실험 수")
