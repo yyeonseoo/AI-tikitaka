@@ -11,6 +11,7 @@
   --ink: #17303f; --paper: #ffffff; --accent: #1f8fbf; --glass: rgba(255,255,255,.82); --warm: #ff9f6b;
   --font-display: "Jua", "Noto Sans KR", system-ui, sans-serif; --font-body: "Noto Sans KR", system-ui, sans-serif;
 }
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #dcecf5; color: var(--ink); font-family: var(--font-body); }
 canvas#c { display: block; width: 100%; height: 100%; touch-action: none; }
 .ui { position: fixed; z-index: 5; }
@@ -83,7 +84,7 @@ const M = (color, extra) => new THREE.MeshToonMaterial(Object.assign({ color }, 
 const B = (color, extra) => new THREE.MeshBasicMaterial(Object.assign({ color }, extra || {}));
 function add(geo, mat, x, y, z, parent) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); (parent || scene).add(m); return m; }
 function group(x, y, z, parent) { const g = new THREE.Group(); g.position.set(x, y, z); (parent || scene).add(g); return g; }
-function canvasTex(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; const tex = new THREE.CanvasTexture(c); tex.anisotropy = 4; return { c, ctx: c.getContext("2d"), tex }; }
+function canvasTex(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; return { c, ctx: c.getContext("2d"), tex }; }
 function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function screenPlane(w, h, cw, ch, x, y, z, ry, parent) {
   const t = canvasTex(cw, ch); const m = add(new THREE.PlaneGeometry(w, h), B(0xffffff, { map: t.tex }), x, y, z, parent); m.rotation.y = ry || 0; return Object.assign(t, { mesh: m });
@@ -210,16 +211,16 @@ add(new THREE.CylinderGeometry(0.15, 0.15, 0.04, 20), M(0x17303f), -2.3, 0.96, -
 clickable(redBtn, "AI 부르기", () => go("lab"), () => S.scene === "manual");
 // shelf
 const SH = group(-1.35, 0, -3.55);
-[1.1, 1.48, 1.86].forEach(y => add(new THREE.BoxGeometry(2.5, 0.04, 0.34), M(0xffffff), 0, y, 0, SH));
-add(new THREE.BoxGeometry(2.5, 1.1, 0.04), M(0xd5edf7), 0, 1.5, -0.17, SH);
-const SLOT_COLOR = { ligand: 0x8fd0f0, base: 0xffd36b, solvent: 0xb7e4c7 };
+[1.3, 1.68, 2.06].forEach(y => add(new THREE.BoxGeometry(2.5, 0.04, 0.34), M(0xffffff), 0, y, 0, SH));
+add(new THREE.BoxGeometry(2.5, 1.2, 0.04), M(0xd5edf7), 0, 1.7, -0.17, SH);
+const SLOT_COLOR = { ligand: 0x8fd0f0, base: 0xffd36b, solvent: 0x6fd39a };
 const SLOT_KO = { ligand: "리간드", base: "염기", solvent: "용매" };
 let bottles = [];
 function buildShelf() {
   bottles.forEach(b => { SH.remove(b); const k = clickables.indexOf(b); if (k >= 0) clickables.splice(k, 1); });
   bottles = [];
   const ls = lists(P());
-  [["ligand", 1.86], ["base", 1.48], ["solvent", 1.1]].forEach(([slot, y]) => {
+  [["ligand", 2.06], ["base", 1.68], ["solvent", 1.3]].forEach(([slot, y]) => {
     const names = ls[slot], gap = 2.3 / names.length;
     names.forEach((n, i) => {
       const g = group(-1.15 + gap * (i + 0.5), y + 0.02, 0.02, SH);
@@ -307,16 +308,16 @@ function makeHand(side) {
   return h;
 }
 const handR = makeHand(-1), handL = makeHand(1);
-const HR0 = new THREE.Vector3(0.24, -0.25, -0.5), HL0 = new THREE.Vector3(-0.27, -0.24, -0.48);
+const HR0 = new THREE.Vector3(0.24, -0.25, -0.5), HL0 = new THREE.Vector3(-0.23, -0.245, -0.44);
 handR.position.copy(HR0); handR.rotation.set(0.25, -0.25, 0.15); camera.add(handR);
 handL.position.copy(HL0); handL.rotation.set(0.5, 0.35, -0.35); camera.add(handL);
 const held = group(0, 0.06, -0.06, handR); held.visible = false;
 const heldBody = add(new THREE.CylinderGeometry(0.022, 0.026, 0.09, 12), M(0x8fd0f0), 0, 0, 0, held);
 add(new THREE.CylinderGeometry(0.012, 0.012, 0.025, 8), M(0x17303f), 0, 0.055, 0, held);
 const pad = canvasTex(640, 480);
-const padMesh = add(new THREE.PlaneGeometry(0.21, 0.158), B(0xffffff, { map: pad.tex, side: THREE.DoubleSide }), 0.025, 0.05, -0.02, handL);
-padMesh.rotation.set(-0.95, -0.25, 0.3);
-add(new THREE.BoxGeometry(0.225, 0.172, 0.008), M(0x17303f), 0.025, 0.046, -0.016, handL).rotation.copy(padMesh.rotation);
+const padMesh = add(new THREE.PlaneGeometry(0.2, 0.15), B(0xffffff, { map: pad.tex, side: THREE.DoubleSide }), -0.2, -0.13, -0.42, camera);
+padMesh.rotation.set(-0.28, 0.32, 0.06);
+add(new THREE.BoxGeometry(0.225, 0.172, 0.006), M(0x17303f), 0, 0, -0.005, padMesh);
 let handAnim = null;
 function animHand(kind) { handAnim = { kind, t: 0 }; }
 
@@ -341,8 +342,8 @@ function drawPad() {
     const m = S.manual; x = padFrame("직접 실험");
     x.fillStyle = "#17303f"; x.font = FD(32); x.fillText(`남은 실험 ${MANUAL_TRIES - m.tries.length} / ${MANUAL_TRIES}`, 24, 118); bar(x, 132, 0, MANUAL_TRIES, m.tries.length);
     x.font = FD(32); x.fillText(`내 최고 수율 ${m.best.toFixed(1)}%`, 24, 210);
-    x.font = FB(24); ["ligand", "base", "solvent"].forEach((s, i) => { x.fillStyle = m.picks[s] ? "#1f8fbf" : "#9aaab4"; x.fillText(`${SLOT_KO[s]}: ${m.picks[s] || "선반에서 고르기"}`, 24 + i * 205, 255); });
-    x.fillStyle = "#5a7180"; x.font = FB(22); m.tries.slice(-5).reverse().forEach((t, i) => x.fillText(`#${m.tries.length - i}  ${t.c.join(" · ")}  →  ${t.y.toFixed(1)}%`, 24, 300 + i * 34));
+    x.font = FB(24); ["ligand", "base", "solvent"].forEach((s, i) => { x.fillStyle = m.picks[s] ? "#1f8fbf" : "#9aaab4"; x.fillText(`${m.picks[s] ? "✔" : "○"} ${SLOT_KO[s]}: ${m.picks[s] || "선반에서 고르기"}`, 24, 252 + i * 32); });
+    x.fillStyle = "#5a7180"; x.font = FB(22); m.tries.slice(-3).reverse().forEach((t, i) => x.fillText(`#${m.tries.length - i}  ${t.c.join(" · ")}  →  ${t.y.toFixed(1)}%`, 24, 372 + i * 32));
   } else if (S.scene === "lab") {
     const a = S.ai; x = padFrame("AI 실험");
     x.fillStyle = "#17303f"; x.font = FD(32); x.fillText(`사용한 실험 ${a.revealed.length} / 40`, 24, 118); x.fillText(`최고 ${a.best.toFixed(1)}%`, 380, 118);
@@ -442,7 +443,7 @@ const SCENES = {
   lobby: { name: "입구", cam: [0, 1.6, 10.6], look: [0, 1.7, 7], fl: [2.3, 1.5, 8.2], say: "어서 오세요! 문을 눌러 실험실로 들어가요." },
   select: { name: "기질 보관함", cam: [-4.5, 1.75, 3.6], look: [-4.5, 1.6, 0], fl: [-2.7, 1.9, 1.3], say: "오늘 실험할 반응을 골라 주세요. 별이 많을수록 좋은 조건이 드물어요." },
   manual: { name: "직접 실험", cam: [-0.3, 1.78, 0.95], look: [-0.3, 1.3, -2.8], fl: [-2.5, 1.85, -1.6], say: "먼저 직접 해 보세요. 선반에서 리간드, 염기, 용매를 하나씩 집어 반응기에 넣으면 돼요. 기회는 12번!" },
-  lab: { name: "AI와 실험", cam: [1.1, 1.95, 0.75], look: [1.1, 1.0, -2.45], fl: [RX, 2.25, -1.85], say: "과거 14쌍 데이터로 학습해서 추천했어요. 레버를 당기면 4개를 한 번에 실험해요." },
+  lab: { name: "AI와 실험", cam: [1.1, 1.95, 0.75], look: [1.1, 1.0, -2.45], fl: [RX - 0.9, 2.0, -1.9], say: "과거 14쌍 데이터로 학습해서 추천했어요. 레버를 당기면 4개를 한 번에 실험해요." },
   report: { name: "나 vs AI", cam: [4.4, 1.85, -0.4], look: [7.9, 1.9, -0.4], fl: [6.6, 2.7, 0.9], say: "왼쪽은 이번 반응의 곡선, 오른쪽 아래는 15쌍 평균 성능이에요." },
   how: { name: "원리", cam: [4.5, 1.8, 6.6], look: [4.5, 1.3, 3.4], fl: [3.1, 2.1, 4.6], say: "구슬을 눌러 보세요. 예측, 실험, 재학습이 계속 돌아요." },
 };
@@ -536,7 +537,7 @@ function loop() {
   else { fBody.rotation.x = 0; fBody.position.y = 0; }
   // hands
   const bob = Math.sin(t * 1.6) * 0.006;
-  handL.position.set(HL0.x, HL0.y + bob, HL0.z);
+  handL.position.set(HL0.x, HL0.y + bob, HL0.z); padMesh.position.y = -0.13 + bob;
   handR.position.set(HR0.x, HR0.y - bob, HR0.z); handR.rotation.set(0.25, -0.25, 0.15);
   if (handAnim) {
     handAnim.t += dt / 0.55; const s = Math.sin(Math.min(1, handAnim.t) * Math.PI);
