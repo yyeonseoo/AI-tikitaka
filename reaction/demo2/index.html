@@ -31,6 +31,7 @@ canvas#c { display: block; width: 100%; height: 100%; touch-action: none; }
   background: rgba(10, 38, 54, .9); color: var(--text); border: 1.5px solid var(--edge); border-radius: 16px; box-shadow: 0 0 16px rgba(88, 208, 232, .3); clip-path: none; }
 #bubble::after { content: ""; position: absolute; left: 50%; bottom: -9px; width: 16px; height: 16px; background: rgba(10, 38, 54, .95);
   border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); transform: translateX(-50%) rotate(45deg); }
+#fade { inset: 0; z-index: 20; background: #050b10; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
 #fail { inset: 0; display: grid; place-items: center; text-align: center; background: #0b2230; font-size: 16px; padding: 24px; }
 #fail a { color: var(--cyan); }
 button { border: 0; }
@@ -45,6 +46,7 @@ button:focus-visible { outline: 2px solid var(--warm); outline-offset: 3px; }
 <button id="prompt" class="ui holo"></button>
 <div id="tip" class="ui holo" hidden></div>
 <div id="bubble" class="ui" hidden></div>
+<div id="fade" class="ui"></div>
 <div id="fail" class="ui" hidden><p>이 브라우저에서는 3D를 표시할 수 없어요.<br><a href="../demo/index.html">2D 데모 열기</a></p></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -468,15 +470,15 @@ const wait = (d, cb) => tween(reduceMotion ? 0.01 : d, () => {}, cb);
 // doors fold into the wall pockets at the frame edges instead of sliding past the curved wall
 function setDoor(k) { const w = 1 - 0.94 * k; doorL.scale.x = doorR.scale.x = w; doorL.position.x = -1.5 + 0.75 * w; doorR.position.x = 1.5 - 0.75 * w; }
 let walking = false;
-function walk(dest) {          // lobby <-> inside, always through the open door
+const fadeEl = document.getElementById("fade");
+// black-out cut: fade to black, jump the camera, fade back in
+function cut(fn) { fadeEl.style.opacity = 1; wait(0.38, () => { fn(); camPos.copy(camPosT); camLook.copy(camLookT); fadeEl.style.opacity = 0; walking = false; }); }
+function walk(dest) {          // lobby <-> inside
   if (walking) return; walking = true;
   if (dest !== "lobby") {
-    const inside = () => { camPosT.set(...DOORWAY); camLookT.set(0, 1.6, 0); wait(1.2, () => { walking = false; go(dest, true); }); };
+    const inside = () => { camPosT.set(...DOORWAY); camLookT.set(0, 1.6, 0); wait(0.6, () => cut(() => go(dest, true))); };
     if (S.opened) inside(); else { S.opened = true; tween(reduceMotion ? 0.01 : 0.8, setDoor, inside); }
-  } else {
-    camPosT.set(...DOORWAY); camLookT.set(0, 1.6, 12);
-    wait(1.1, () => { walking = false; go("lobby", true); wait(1.3, () => { if (S.scene === "lobby") { S.opened = false; tween(reduceMotion ? 0.01 : 0.8, k => setDoor(1 - k)); } }); });
-  }
+  } else cut(() => { S.opened = false; setDoor(0); go("lobby", true); });
 }
 function enterLab() { go("select"); }
 function choosePair() { S.pair = S.sel; resetRuns(); buildShelf(); paintPlate(); drawReactor("READY", "시약 3개"); go("manual"); }
