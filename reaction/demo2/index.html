@@ -77,14 +77,14 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = !location.search.includes("lite"); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x5f7b8f);
-scene.fog = new THREE.Fog(0x5f7b8f, 16, 34);
+scene.background = new THREE.Color(0x5f86ad);
+scene.fog = new THREE.Fog(0x5f86ad, 18, 36);
 const camera = new THREE.PerspectiveCamera(56, 1, 0.03, 100);
 scene.add(camera);
-scene.add(new THREE.HemisphereLight(0xeaf4ff, 0x40566a, 0.6));
-const sun = new THREE.DirectionalLight(0xfff6ec, 1.0); sun.position.set(2.5, 7, 4.5); sun.castShadow = true;
+scene.add(new THREE.HemisphereLight(0xeaf4ff, 0x6f8fb0, 0.5));
+const sun = new THREE.DirectionalLight(0xfff6ec, 0.65); sun.position.set(2.5, 7, 4.5); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 20 }); sun.shadow.bias = -0.0005; scene.add(sun);
-const cool = new THREE.PointLight(0x7fe0f5, 0.9, 6); cool.position.set(0.45, 2.4, -1.8); scene.add(cool);
+const cool = new THREE.PointLight(0x7fe0f5, 1.2, 7); cool.position.set(0.45, 2.6, -2.0); scene.add(cool);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const M = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.5, metalness: 0.05 }, extra || {}));
@@ -116,30 +116,48 @@ function glow(x, t, X, Y, font, col, maxW, blur) {
 }
 function tag(x, t, X, Y) { x.save(); x.font = FD(24); if ("letterSpacing" in x) x.letterSpacing = "4px"; x.fillStyle = HC.dim; x.fillText(t, X, Y); x.restore(); }
 
-// ---------------------------------------------------------------- room
-{ const t = canvasTex(256, 256); t.ctx.fillStyle = "#4f6578"; t.ctx.fillRect(0, 0, 256, 256); t.ctx.fillStyle = "#566d81"; t.ctx.fillRect(0, 0, 128, 128); t.ctx.fillRect(128, 128, 128, 128);
-  t.ctx.strokeStyle = "#3b4f60"; t.ctx.lineWidth = 3; t.ctx.strokeRect(0, 0, 256, 256); t.tex.wrapS = t.tex.wrapT = THREE.RepeatWrapping; t.tex.repeat.set(20, 20); t.tex.minFilter = THREE.LinearMipmapLinearFilter; t.tex.generateMipmaps = true;
-  add(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ map: t.tex, roughness: 0.35, metalness: 0.1 }), 0, 0, 0).rotation.x = -Math.PI / 2; }
-const wallM = M(0xb4cfdd);
-add(new THREE.BoxGeometry(16, 4.2, 0.2), wallM, 0, 2.1, -4.1);
-add(new THREE.BoxGeometry(0.2, 4.2, 11.2), wallM, -8.1, 2.1, 1.5);
-add(new THREE.BoxGeometry(0.2, 4.2, 11.2), wallM, 8.1, 2.1, 1.5);
-add(new THREE.BoxGeometry(6.5, 4.2, 0.2), wallM, -4.75, 2.1, 7.1);
-add(new THREE.BoxGeometry(6.5, 4.2, 0.2), wallM, 4.75, 2.1, 7.1);
-add(new THREE.BoxGeometry(3, 1.6, 0.2), wallM, 0, 3.4, 7.1);
-const panelM = M(0x35566c);
-add(new THREE.BoxGeometry(16.2, 1.0, 0.06), panelM, 0, 0.5, -3.97); add(new THREE.BoxGeometry(0.06, 1.0, 11.2), panelM, -7.97, 0.5, 1.5); add(new THREE.BoxGeometry(0.06, 1.0, 11.2), panelM, 7.97, 0.5, 1.5);
-add(new THREE.BoxGeometry(16.2, 0.05, 0.08), M(0x58d0e8, { emissive: 0x2a9fd0, emissiveIntensity: 0.6 }), 0, 1.02, -3.95);
-add(new THREE.PlaneGeometry(16.2, 11.2), M(0xdfe8ee), 0, 4.2, 1.5).rotation.x = Math.PI / 2;
-[[-3.5, -1.5], [3.5, -1.5], [-3.5, 3.5], [3.5, 3.5]].forEach(([x, z]) => add(new THREE.BoxGeometry(1.6, 0.04, 0.6), B(0xf4fbff), x, 4.17, z));
-// fume hood (back wall, right)
-{ const h = group(4.3, 0, -3.5); add(new THREE.BoxGeometry(2.4, 0.9, 0.9), M(0x6f8ea3), 0, 0.45, 0, h); add(new THREE.BoxGeometry(2.4, 0.06, 0.95), M(0xf2f6f8), 0, 0.93, 0, h);
-  add(new THREE.BoxGeometry(2.4, 1.5, 0.08), M(0xe7eef2), 0, 1.7, -0.42, h); add(new THREE.BoxGeometry(0.1, 1.5, 0.9), M(0xe7eef2), -1.15, 1.7, 0, h); add(new THREE.BoxGeometry(0.1, 1.5, 0.9), M(0xe7eef2), 1.15, 1.7, 0, h);
-  add(new THREE.BoxGeometry(2.4, 0.5, 0.9), M(0xe7eef2), 0, 2.7, 0, h); add(new THREE.BoxGeometry(2.2, 1.0, 0.03), M(0xbfe6f5, { transparent: true, opacity: 0.35 }), 0, 1.75, 0.43, h);
-  [-0.6, 0, 0.6].forEach(x => add(new THREE.CylinderGeometry(0.06, 0.09, 0.22, 14), M(0xff9f6b), x, 1.07, -0.1, h)); }
-// wall cabinets (left wall)
-[-2.4, -0.6, 1.2].forEach(z => { add(new THREE.BoxGeometry(0.6, 0.9, 1.6), M(0x6f8ea3), -7.7, 0.45, z); add(new THREE.BoxGeometry(0.65, 0.05, 1.65), M(0xf2f6f8), -7.7, 0.93, z); });
-const ringLight = add(new THREE.TorusGeometry(1.1, 0.05, 8, 48), B(0x9fe6f5), 0.4, 4.1, -2.3); ringLight.rotation.x = Math.PI / 2;
+// ---------------------------------------------------------------- round lab (center 0, 0.6 · radius 8.6 · door at +z)
+const CZ = 0.6, RAD = 8.6, GAP = 0.2;
+{ const t = canvasTex(1024, 1024), c = t.ctx; c.fillStyle = "#b7cde2"; c.fillRect(0, 0, 1024, 1024);
+  [[500, "#c3d6e8"], [380, "#b7cde2"], [300, "#a9c2db"], [180, "#c0d4e6"]].forEach(([r, col]) => { c.fillStyle = col; c.beginPath(); c.arc(512, 512, r, 0, 7); c.fill(); });
+  c.strokeStyle = "#8fb0cf"; c.lineWidth = 4; [460, 340, 240].forEach(r => { c.beginPath(); c.arc(512, 512, r, 0, 7); c.stroke(); });
+  const fl = add(new THREE.CircleGeometry(RAD, 72), new THREE.MeshStandardMaterial({ map: t.tex, roughness: 0.5 }), 0, 0.002, CZ); fl.rotation.x = -Math.PI / 2; }
+add(new THREE.PlaneGeometry(60, 60), M(0x4f7396), 0, 0, 0).rotation.x = -Math.PI / 2;
+const wallM = M(0x5f95cf, { side: THREE.DoubleSide });
+add(new THREE.CylinderGeometry(RAD, RAD, 4.6, 72, 1, true, GAP, Math.PI * 2 - 2 * GAP), wallM, 0, 2.3, CZ);
+add(new THREE.CylinderGeometry(RAD - 0.03, RAD - 0.03, 0.95, 72, 1, true, GAP, Math.PI * 2 - 2 * GAP), M(0x2f67a8, { side: THREE.DoubleSide }), 0, 0.475, CZ);
+add(new THREE.CylinderGeometry(RAD - 0.04, RAD - 0.04, 0.5, 72, 1, true, GAP, Math.PI * 2 - 2 * GAP), M(0xeef5fb, { side: THREE.DoubleSide }), 0, 3.9, CZ);
+{ const tr = add(new THREE.TorusGeometry(RAD - 0.05, 0.035, 6, 96), B(0x9ff0ff), 0, 0.97, CZ); tr.rotation.x = Math.PI / 2; }
+add(new THREE.BoxGeometry(3.6, 1.85, 0.35), wallM, 0, 3.68, CZ + RAD);
+{ const ce = add(new THREE.CircleGeometry(RAD, 72), M(0xb9cfe3, { side: THREE.DoubleSide }), 0, 4.6, CZ); ce.rotation.x = Math.PI / 2; }
+const ringLight = add(new THREE.TorusGeometry(3.2, 0.09, 12, 96), B(0x9fe6f5), 0, 4.5, CZ); ringLight.rotation.x = Math.PI / 2;
+{ const d = add(new THREE.CircleGeometry(0.95, 48), B(0xeafcff), 0.45, 4.58, -2.35); d.rotation.x = Math.PI / 2; }
+// light beam over the reactor, with drifting hologram symbols
+add(new THREE.CylinderGeometry(0.85, 0.45, 2.55, 40, 1, true), B(0x8ff0ff, { transparent: true, opacity: 0.09, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }), 0.45, 3.3, -2.35);
+add(new THREE.CylinderGeometry(0.5, 0.3, 2.55, 32, 1, true), B(0xc9fbff, { transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }), 0.45, 3.3, -2.35);
+const icons = ["+", "−", "△", "○", "×", "◇", "÷"].map((ch, i) => {
+  const t = canvasTex(128, 128); t.ctx.textAlign = "center"; t.ctx.textBaseline = "middle"; glow(t.ctx, ch, 64, 66, FD(92), "#bff7ff", 0, 14);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex, transparent: true, depthWrite: false })); sp.scale.set(0.2, 0.2, 1); sp.userData.ph = i / 7; scene.add(sp); return sp;
+});
+// big window at the back
+{ const t = canvasTex(1024, 380), c = t.ctx, g = c.createLinearGradient(0, 0, 0, 380); g.addColorStop(0, "#9fdcff"); g.addColorStop(1, "#d7f3ff"); c.fillStyle = g; c.fillRect(0, 0, 1024, 380);
+  c.fillStyle = "#7cc69a"; c.beginPath(); c.ellipse(260, 400, 420, 170, 0, 0, 7); c.fill(); c.fillStyle = "#5aae7f"; c.beginPath(); c.ellipse(820, 410, 380, 150, 0, 0, 7); c.fill();
+  [[140, 230, 60], [210, 250, 44], [880, 240, 70], [960, 270, 46], [520, 300, 40]].forEach(([x, y, r]) => { c.fillStyle = "#3f9467"; c.fillRect(x - 6, y, 12, 140); c.fillStyle = "#4fa877"; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); });
+  add(new THREE.PlaneGeometry(6.2, 2.3), B(0xffffff, { map: t.tex }), 0, 2.35, -7.35);
+  add(new THREE.BoxGeometry(6.5, 0.14, 0.2), M(0x2f6aa8), 0, 3.55, -7.35); add(new THREE.BoxGeometry(6.5, 0.14, 0.2), M(0x2f6aa8), 0, 1.15, -7.35);
+  [-3.2, 0, 3.2].forEach(x => add(new THREE.BoxGeometry(0.14, 2.5, 0.2), M(0x2f6aa8), x, 2.35, -7.35)); }
+// white consoles around the wall
+function consoleAt(deg, holo) {
+  const th = deg * Math.PI / 180, g = group(Math.sin(th) * 7.5, 0, CZ + Math.cos(th) * 7.5); g.rotation.y = th + Math.PI;
+  add(new THREE.BoxGeometry(1.4, 0.82, 0.7), M(0xf2f6fa), 0, 0.41, 0, g);
+  add(new THREE.BoxGeometry(1.2, 0.5, 0.02), M(0xb9cadb), 0, 0.42, 0.36, g);
+  const top = add(new THREE.BoxGeometry(1.4, 0.07, 0.62), M(0xdde7f0), 0, 0.88, 0.02, g); top.rotation.x = 0.3;
+  const scr = add(new THREE.PlaneGeometry(0.7, 0.28), B(0x6fe0ff), -0.15, 0.93, 0.05, g); scr.rotation.x = -Math.PI / 2 + 0.3;
+  [[0.35, 0xff7a6b], [0.48, 0xffd36b], [0.35, 0x6ff0b0]].forEach(([x, col], i) => add(new THREE.BoxGeometry(0.07, 0.03, 0.07), M(col), x + (i === 2 ? 0.13 : 0), 0.93, i === 1 ? 0.12 : -0.02, g));
+  if (holo) { const t = canvasTex(256, 384); holoPanel(t.ctx, 256, 384); t.ctx.textAlign = "center"; ["+", "△", "÷"].forEach((ch, i) => glow(t.ctx, ch, 128, 110 + i * 100, FD(80), "#bff7ff", 0, 12));
+    add(new THREE.PlaneGeometry(0.85, 1.28), B(0xffffff, { map: t.tex, transparent: true, depthWrite: false, side: THREE.DoubleSide }), 0, 1.75, -0.1, g); }
+}
+consoleAt(52, true); consoleAt(-52, true); consoleAt(140); consoleAt(-140);
 
 // ---------------------------------------------------------------- interaction registry
 const clickables = [];
@@ -156,19 +174,19 @@ function tween(d, fn, done) { tweens.push({ t: 0, d, fn, done }); }
 
 // ---------------------------------------------------------------- lobby: door, sign, board, marquee
 const doorM = () => M(0x9cc9dc, { roughness: 0.15, metalness: 0.2 });
-const doorL = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), doorM(), -0.75, 1.3, 7.1);
-const doorR = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), doorM(), 0.75, 1.3, 7.1);
-[-0.06, 0.06].forEach(x => add(new THREE.BoxGeometry(0.03, 0.5, 0.05), M(0x35566c), x, 1.25, 7.17));
-add(new THREE.BoxGeometry(3.3, 0.12, 0.3), M(0x35566c), 0, 2.66, 7.1); [-1.6, 1.6].forEach(x => add(new THREE.BoxGeometry(0.12, 2.7, 0.3), M(0x35566c), x, 1.35, 7.1));
+const doorL = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), doorM(), -0.75, 1.3, 9.2);
+const doorR = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), doorM(), 0.75, 1.3, 9.2);
+[-0.06, 0.06].forEach(x => add(new THREE.BoxGeometry(0.03, 0.5, 0.05), M(0x35566c), x, 1.25, 9.27));
+add(new THREE.BoxGeometry(3.3, 0.12, 0.4), M(0x2f6aa8), 0, 2.66, 9.2); [-1.6, 1.6].forEach(x => add(new THREE.BoxGeometry(0.12, 2.7, 0.4), M(0x2f6aa8), x, 1.35, 9.2));
 const doorGroup = new THREE.Group(); doorGroup.add(doorL, doorR); scene.add(doorGroup);
 clickable(doorGroup, "실험실 문", () => enterLab(), () => S.scene === "lobby");
-const sign = screenPlane(2.2, 0.5, 880, 200, 0, 2.95, 7.21);
+const sign = screenPlane(2.2, 0.5, 880, 200, 0, 3.05, 9.4);
 holoPanel(sign.ctx, 880, 200); sign.ctx.textAlign = "center"; sign.ctx.textBaseline = "middle"; glow(sign.ctx, "REACTPILOT LAB", 440, 106, FD(84), HC.cyan, 760, 18);
 function drawLobby() {}
 
 // ---------------------------------------------------------------- select: carousel
 const TT = group(-4.5, 0, 0);
-add(new THREE.CylinderGeometry(1.55, 1.7, 0.9, 40), M(0x35566c), 0, 0.45, 0, TT); add(new THREE.CylinderGeometry(1.56, 1.56, 0.04, 40), M(0xf2f6f8), 0, 0.91, 0, TT);
+add(new THREE.CylinderGeometry(1.55, 1.7, 0.9, 40), M(0xe3ecf4), 0, 0.45, 0, TT); add(new THREE.CylinderGeometry(1.62, 1.62, 0.14, 40), M(0x5f95c8), 0, 0.25, 0, TT); add(new THREE.CylinderGeometry(1.56, 1.56, 0.04, 40), M(0xf2f6f8), 0, 0.91, 0, TT);
 const spin = group(0, 0.92, 0, TT);
 const slotGroups = [];
 D.pairs.forEach((p, i) => {
@@ -221,19 +239,19 @@ function onSel() {
 }
 
 // ---------------------------------------------------------------- bench, reactor, shelf, plate, red button
-add(new THREE.BoxGeometry(5.6, 0.1, 1.5), M(0x2b3d4a, { roughness: 0.3 }), 0.1, 0.9, -2.4);
-add(new THREE.BoxGeometry(5.4, 0.85, 1.3), M(0x6f8ea3), 0.1, 0.43, -2.4);
+add(new THREE.BoxGeometry(5.6, 0.1, 1.5), M(0xf4f8fb, { roughness: 0.4 }), 0.1, 0.9, -2.4);
+add(new THREE.BoxGeometry(5.4, 0.85, 1.3), M(0xe3ecf4), 0.1, 0.43, -2.4);
+add(new THREE.BoxGeometry(4.8, 0.45, 0.02), M(0xb9cadb), 0.1, 0.45, -1.74); [[-1.6, 0xff7a6b], [-1.45, 0xffd36b], [-1.3, 0x6ff0b0]].forEach(([x, c]) => add(new THREE.BoxGeometry(0.08, 0.08, 0.03), M(c), x, 0.72, -1.74));
 const RX = 0.45, RZ = -2.35;
 add(new THREE.CylinderGeometry(0.34, 0.4, 0.14, 32), M(0x9fb7c4), RX, 1.02, RZ);
 const liquid = add(new THREE.CylinderGeometry(0.25, 0.25, 0.3, 32), M(0x9fe6f5, { transparent: true, opacity: 0.85 }), RX, 1.24, RZ);
 let liquidLevel = 1, liquidTarget = 1;
-const stream = add(new THREE.CylinderGeometry(0.011, 0.014, 0.42, 8), M(0x9fe6f5, { transparent: true, opacity: 0.85 }), RX - 0.1, 1.58, RZ + 0.04); stream.visible = false;
+const stream = add(new THREE.CylinderGeometry(0.011, 0.014, 0.42, 8), M(0x9fe6f5, { transparent: true, opacity: 0.85 }), RX - 0.14, 1.58, RZ + 0.05); stream.visible = false;
 add(new THREE.CylinderGeometry(0.28, 0.28, 0.6, 32, 1, true), M(0xe9f7fc, { transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }), RX, 1.39, RZ);
 add(new THREE.CylinderGeometry(0.31, 0.31, 0.06, 32), M(0x7fa3b5), RX, 1.71, RZ);
 const lever = group(RX + 0.42, 1.2, RZ);
 add(new THREE.CylinderGeometry(0.02, 0.02, 0.36, 8), M(0x7fa3b5), 0, 0.15, 0, lever);
 const leverKnob = add(new THREE.SphereGeometry(0.06, 16, 12), M(0xff9f6b), 0, 0.34, 0, lever);
-lever.userData.selfAnim = true;
 clickable(lever, "레버: 반응 시작", () => pullLever(), () => (S.scene === "manual" && manualReady()) || (S.scene === "lab" && S.ai.round < 10));
 const rScreen = screenPlane(0.84, 0.29, 640, 220, RX, 2.0, RZ - 0.2);
 function drawReactor(big, small, color) {
@@ -248,7 +266,7 @@ clickable(redBtn, "AI 부르기", () => go("lab"), () => S.scene === "manual");
 // shelf
 const SH = group(-1.35, 0, -3.55);
 [1.3, 1.68, 2.06].forEach(y => add(new THREE.BoxGeometry(2.5, 0.04, 0.34), M(0xffffff), 0, y, 0, SH));
-add(new THREE.BoxGeometry(2.5, 1.2, 0.04), M(0x35566c), 0, 1.7, -0.17, SH);
+add(new THREE.BoxGeometry(2.5, 1.2, 0.04), M(0x2f6aa8), 0, 1.7, -0.17, SH);
 const SLOT_COLOR = { ligand: 0x8fd0f0, base: 0xffd36b, solvent: 0x6fd39a };
 const SLOT_KO = { ligand: "리간드", base: "염기", solvent: "용매" };
 let bottles = [], tags = [];
@@ -271,7 +289,6 @@ function buildShelf() {
       add(new THREE.CylinderGeometry(0.025, 0.025, 0.05, 10), M(0x17303f), 0, 0.215, 0, g);
       add(new THREE.BoxGeometry(0.07, 0.06, 0.005), M(0xffffff), 0, 0.09, 0.052, g);
       g.userData.slot = slot; g.userData.name = n;
-      g.userData.selfAnim = true;
       clickable(g, `${SLOT_KO[slot]} · ${n === "없음" ? "넣지 않음" : n}`, () => pick(slot, n, g), () => S.scene === "manual" && S.manual.tries.length < MANUAL_TRIES);
       shelfTag(n === "없음" ? "NONE" : n, gap * 0.96, 0.075, 320, -1.15 + gap * (i + 0.5), y - 0.045, 0.2, slot === "ligand" ? HC.cyan : slot === "base" ? HC.amber : HC.green);
       bottles.push(g);
@@ -338,53 +355,27 @@ const bubble = document.getElementById("bubble");
 let bubbleText = null;
 function speak(t) { if (t !== null && t !== undefined) { bubbleText = t; bubble.textContent = t; } }
 
-// ---------------------------------------------------------------- hands + lab pad (children of camera)
-const gloveM = M(0x6fc3ef, { roughness: 0.65 }), cuffM = M(0x3f9fd0, { roughness: 0.65 });
-function makeHand(side) {
-  const h = new THREE.Group(), fingers = [];
-  const palm = add(new THREE.SphereGeometry(0.05, 20, 16), gloveM, 0, 0, -0.008, h); palm.scale.set(1.2, 0.5, 1.2);
-  const seg = (len, r0, r1, parent) => { const m = add(new THREE.CylinderGeometry(r1, r0, len, 10), gloveM, 0, 0, -len / 2, parent); m.rotation.x = Math.PI / 2; };
-  [[0.034, 0.026], [0.038, 0.028], [0.036, 0.027], [0.03, 0.022]].forEach(([a, b], i) => {
-    const f = group((i - 1.5) * 0.025, 0.004, -0.05, h);              // knuckle sits inside the palm edge
-    add(new THREE.SphereGeometry(0.0128, 10, 8), gloveM, 0, 0, 0, f); seg(a, 0.0125, 0.0118, f);
-    const j = group(0, 0, -a, f);
-    add(new THREE.SphereGeometry(0.0119, 10, 8), gloveM, 0, 0, 0, j); seg(b, 0.0118, 0.0108, j);
-    add(new THREE.SphereGeometry(0.0109, 10, 8), gloveM, 0, 0, -b, j);
-    f.userData.base = -0.22 - 0.06 * Math.abs(i - 1.5); j.userData.base = -0.3; fingers.push([f, j]);
-  });
-  const t = group(side * 0.048, -0.006, -0.014, h); t.rotation.set(0, side * 0.85, side * 0.35);
-  add(new THREE.SphereGeometry(0.0145, 10, 8), gloveM, 0, 0, 0, t); seg(0.03, 0.0145, 0.013, t);
-  const tj = group(0, 0, -0.03, t); add(new THREE.SphereGeometry(0.013, 10, 8), gloveM, 0, 0, 0, tj); seg(0.024, 0.013, 0.012, tj); add(new THREE.SphereGeometry(0.012, 10, 8), gloveM, 0, 0, -0.024, tj);
-  t.userData.base = t.rotation.y; fingers.thumb = tj;
-  const wrist = add(new THREE.CylinderGeometry(0.043, 0.046, 0.07, 16), gloveM, 0, -0.004, 0.055, h); wrist.rotation.x = Math.PI / 2;
-  const cuff = add(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 16), cuffM, 0, -0.004, 0.095, h); cuff.rotation.x = Math.PI / 2;
-  h.userData.fingers = fingers;
-  return h;
-}
-const handR = makeHand(-1), handL = makeHand(1);
-const HR0 = new THREE.Vector3(0.24, -0.25, -0.5), HL0 = new THREE.Vector3(-0.23, -0.245, -0.44);
-handR.position.copy(HR0); handR.rotation.set(0.25, -0.25, 0.15); camera.add(handR);
-handL.position.copy(HL0); handL.rotation.set(0.5, 0.35, -0.35); camera.add(handL);
-const armGeo = new THREE.CylinderGeometry(0.06, 0.047, 1, 18, 1, true); armGeo.translate(0, 0.5, 0);
-const coatM = M(0xf3f7fa, { roughness: 0.85, side: THREE.DoubleSide });
-const arms = [[handR, new THREE.Vector3(0.32, -0.95, 0.25)], [handL, new THREE.Vector3(-0.32, -0.95, 0.25)]].map(([h, sh]) => { const m = new THREE.Mesh(armGeo, coatM); camera.add(m); return { h, sh, m }; });
-const UP = new THREE.Vector3(0, 1, 0), wristV = new THREE.Vector3(), dirV = new THREE.Vector3();
-function updateArms() { arms.forEach(a => { a.h.updateMatrix(); wristV.set(0, -0.004, 0.08).applyMatrix4(a.h.matrix); dirV.copy(a.sh).sub(wristV);
-  a.m.position.copy(wristV); a.m.scale.set(1, dirV.length(), 1); a.m.quaternion.setFromUnitVectors(UP, dirV.normalize()); }); }
-const held = group(0, 0.035, -0.075, handR); held.visible = false;
-const heldBody = add(new THREE.CylinderGeometry(0.022, 0.026, 0.09, 12), M(0x8fd0f0), 0, 0, 0, held);
-add(new THREE.CylinderGeometry(0.012, 0.012, 0.025, 8), M(0x17303f), 0, 0.055, 0, held);
+// ---------------------------------------------------------------- lab pad (HUD) + flying bottle
 const pad = canvasTex(640, 480);
 const padMesh = add(new THREE.PlaneGeometry(0.2, 0.15), B(0xffffff, { map: pad.tex, side: THREE.DoubleSide }), -0.2, -0.13, -0.42, camera);
 padMesh.rotation.set(-0.28, 0.32, 0.06);
 add(new THREE.BoxGeometry(0.225, 0.172, 0.006), M(0x17303f), 0, 0, -0.005, padMesh);
-let handAnim = null;
-function reachTo(point) { if (point) { seq = []; handAnim = { kind: "reach", t: 0, target: camera.worldToLocal(point.clone()) }; } }
-let seq = [];
-// a point on the line of sight to p, at arm's length, so the hand covers p on screen
-function reachPoint(p) { const v = camera.worldToLocal(p.clone()).normalize().multiplyScalar(0.56); v.y -= 0.035; v.x += 0.01; return v; }
-function runSeq(steps) { handAnim = null; seq = steps.map(st => Object.assign({ t: 0, curl0: 0, curl1: 0 }, st)); }
-function curlHand(h, c) { h.userData.fingers.forEach(([f, j]) => { f.rotation.x = f.userData.base - 0.8 * c; j.rotation.x = j.userData.base - 0.9 * c; }); h.userData.fingers.thumb.rotation.x = -0.6 * c; }
+const fly = new THREE.Group(); scene.add(fly); fly.visible = false;
+const flyBody = add(new THREE.CylinderGeometry(0.045, 0.055, 0.19, 14), M(0x8fd0f0), 0, 0.095, 0, fly);
+add(new THREE.CylinderGeometry(0.025, 0.025, 0.05, 10), M(0x17303f), 0, 0.215, 0, fly);
+function flyPour(g, slot, onPoured) {
+  const a = new THREE.Vector3(); g.getWorldPosition(a);
+  const top = new THREE.Vector3(RX - 0.32, 1.86, RZ + 0.05), mid = a.clone().lerp(top, 0.5); mid.y += 0.45;
+  const bez = k => a.clone().multiplyScalar((1 - k) * (1 - k)).add(mid.clone().multiplyScalar(2 * (1 - k) * k)).add(top.clone().multiplyScalar(k * k));
+  const ease = k => k * k * (3 - 2 * k);
+  flyBody.material.color.setHex(SLOT_COLOR[slot]); stream.material.color.setHex(SLOT_COLOR[slot]);
+  fly.position.copy(a); fly.rotation.set(0, 0, 0); fly.visible = true; g.visible = false;
+  tween(0.55, k => fly.position.copy(bez(ease(k))), () =>
+    tween(0.85, k => { const r = k < 0.25 ? k / 0.25 : k > 0.75 ? (1 - k) / 0.25 : 1; fly.rotation.z = -2.0 * r; stream.visible = k > 0.2 && k < 0.8; }, () => {
+      stream.visible = false; onPoured();
+      tween(0.5, k => fly.position.copy(bez(1 - ease(k))), () => { fly.visible = false; g.visible = true; });
+    }));
+}
 
 // ---------------------------------------------------------------- pad + monitor drawing
 function drawPad() {
@@ -449,10 +440,13 @@ function drawMonitor() {
 }
 
 // ---------------------------------------------------------------- actions
+const DOORWAY = [0, 1.7, 7.4];
 function enterLab() {
   if (S.opened) { go("select"); return; }
   S.opened = true;
-  tween(reduceMotion ? 0.01 : 0.9, k => { doorL.position.x = -0.75 - 1.4 * k; doorR.position.x = 0.75 + 1.4 * k; }, () => go("select"));
+  tween(reduceMotion ? 0.01 : 0.8, k => { doorL.position.x = -0.75 - 1.4 * k; doorR.position.x = 0.75 + 1.4 * k; }, () => {
+    camPosT.set(...DOORWAY); camLookT.set(0, 1.6, 0); tween(reduceMotion ? 0.01 : 1.1, () => {}, () => go("select"));
+  });
 }
 function choosePair() { S.pair = S.sel; resetRuns(); buildShelf(); paintPlate(); drawReactor("READY", "시약 3개"); go("manual"); }
 function manualReady() { const k = S.manual.picks; return k.ligand && k.base && k.solvent && S.manual.tries.length < MANUAL_TRIES; }
@@ -460,16 +454,8 @@ function pick(slot, name, g) {
   const before = Object.values(S.manual.picks).filter(Boolean).length;
   if (!before) { liquidTarget = liquidLevel = 0.12; liquid.material.color.setHex(0x9fe6f5); }
   S.manual.picks[slot] = name;
-  heldBody.material.color.setHex(SLOT_COLOR[slot]); held.visible = false;
-  const bp = new THREE.Vector3(); g.getWorldPosition(bp); bp.y += 0.1;
-  const A = reachPoint(bp), Bp = reachPoint(new THREE.Vector3(RX - 0.14, 1.98, RZ + 0.05));
   const n = Object.values(S.manual.picks).filter(Boolean).length;
-  runSeq([
-    { from: HR0, to: A, d: 0.4, curl1: 0.75, onEnd: () => { held.visible = true; } },
-    { from: A, to: Bp, d: 0.45, curl0: 0.75, curl1: 0.75 },
-    { from: Bp, to: Bp, d: 0.75, curl0: 0.75, curl1: 0.75, tilt: 1, onStart: () => { stream.material.color.setHex(SLOT_COLOR[slot]); stream.visible = true; },
-      onEnd: () => { stream.visible = false; held.visible = false; liquidTarget = 0.12 + 0.29 * n; bubbleJump(); } },
-    { from: Bp, to: HR0, d: 0.4, curl0: 0.4 }]);
+  flyPour(g, slot, () => { liquidTarget = 0.12 + 0.29 * n; bubbleJump(); });
   bottles.forEach(b => { if (b.userData.slot === slot) b.position.y = b.userData.y0 ?? (b.userData.y0 = b.position.y); });
   if (g.userData.y0 === undefined) g.userData.y0 = g.position.y; g.position.y = g.userData.y0 + 0.05;
   drawPad(); updatePrompt();
@@ -477,9 +463,7 @@ function pick(slot, name, g) {
 }
 function setLiquid(y) { liquid.material.color.setHSL(0.52 - 0.45 * y / 100, 0.75, 0.62); }
 function pullLever() {
-  { const lp = new THREE.Vector3(); leverKnob.getWorldPosition(lp); const L = reachPoint(lp), L2 = L.clone().add(new THREE.Vector3(0, -0.07, 0.04));
-    runSeq([{ from: HR0, to: L, d: 0.35, curl1: 0.85 }, { from: L, to: L2, d: 0.3, curl0: 0.85, curl1: 0.85 }, { from: L2, to: HR0, d: 0.35, curl0: 0.85 }]); }
-  liquidTarget = 1; held.visible = false;
+  liquidTarget = 1;
   tween(0.3, k => { lever.rotation.z = -0.7 * Math.sin(k * Math.PI); });
   const p = P();
   if (S.scene === "manual") {
@@ -509,7 +493,7 @@ function bubbleJump() { tween(0.6, k => { liquid.scale.x = liquid.scale.z = 1 + 
 
 // ---------------------------------------------------------------- scenes
 const SCENES = {
-  lobby: { name: "입구", cam: [0, 1.7, 11.8], look: [0, 1.6, 7], fl: [1.75, 1.55, 8.6], say: "384개 조건, 어디부터 실험할까요?" },
+  lobby: { name: "입구", cam: [0, 1.7, 13.6], look: [0, 1.6, 9.2], fl: [1.75, 1.55, 10.4], say: "384개 조건, 어디부터 실험할까요?" },
   select: { name: "기질 보관함", cam: [-4.5, 1.75, 3.6], look: [-4.5, 1.6, 0], fl: [-2.7, 1.9, 1.3], say: "실험할 반응을 고르세요." },
   manual: { name: "직접 실험", cam: [-0.55, 1.72, -0.7], look: [-0.55, 1.5, -3.6], fl: [-2.5, 1.85, -1.6], say: "먼저 직접 해 보세요. 기회는 12번이에요." },
   lab: { name: "AI와 실험", cam: [1.1, 1.95, 0.75], look: [1.1, 1.0, -2.45], fl: [RX - 0.9, 2.0, -1.9], say: "과거 실험 기록으로 고른 4개예요." },
@@ -524,6 +508,7 @@ function go(k) {
   if (!SCENES[k]) k = "lobby";
   if (k !== "lobby" && !S.opened) { S.opened = true; doorL.position.x = -2.15; doorR.position.x = 2.15; }
   if ((k === "manual" || k === "lab" || k === "report") && !bottles.length) { S.pair = S.sel; resetRuns(); buildShelf(); }
+  if ((S.scene === "lobby") !== (k === "lobby") && !reduceMotion) { camPos.set(...DOORWAY); camLook.set(0, 1.6, k === "lobby" ? 12 : 0); }
   S.scene = k; const s = SCENES[k];
   camPosT.set(...s.cam); camLookT.set(...s.look); flaskoTarget.set(...s.fl);
   if (reduceMotion) { camPos.copy(camPosT); camLook.copy(camLookT); }
@@ -572,7 +557,7 @@ canvas.addEventListener("pointermove", e => {
   tip.hidden = !label; tip.textContent = label; tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px";
   canvas.style.cursor = o ? "pointer" : "default";
 });
-canvas.addEventListener("click", e => { ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); const o = hitTest(); if (o) { if (!o.userData.selfAnim) reachTo(lastPoint); o.userData.click.fn(); } });
+canvas.addEventListener("click", e => { ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); const o = hitTest(); if (o) o.userData.click.fn(); });
 addEventListener("keydown", e => {
   if (S.scene === "select" && e.key === "ArrowLeft") { S.sel = (S.sel + D.pairs.length - 1) % D.pairs.length; onSel(); }
   if (S.scene === "select" && e.key === "ArrowRight") { S.sel = (S.sel + 1) % D.pairs.length; onSel(); }
@@ -604,28 +589,10 @@ function loop() {
   prop.rotation.y = t * 18;
   if (flaskoSpin > 0) { flaskoSpin = Math.max(0, flaskoSpin - dt * 0.9); fBody.rotation.x = (1 - flaskoSpin) * Math.PI * 2; fBody.position.y = Math.sin((1 - flaskoSpin) * Math.PI) * 0.25; }
   else { fBody.rotation.x = 0; fBody.position.y = 0; }
-  // hands
-  const bob = Math.sin(t * 1.6) * 0.006;
-  const padOn = S.scene === "select" || S.scene === "manual" || S.scene === "lab"; padMesh.visible = padOn;
-  handL.position.set(HL0.x, HL0.y + bob - (padOn ? 0 : 0.12), HL0.z); padMesh.position.y = -0.13 + bob;
-  handR.position.set(HR0.x, HR0.y - bob, HR0.z); handR.rotation.set(0.25, -0.25, 0.15);
-  let curl = 0;
-  if (seq.length) {
-    const st = seq[0]; if (st.t === 0 && st.onStart) st.onStart();
-    st.t += dt / st.d; const q = Math.min(1, st.t), e = q * q * (3 - 2 * q);
-    handR.position.lerpVectors(st.from, st.to, e); handR.position.y -= bob; handR.rotation.x -= 0.3;
-    curl = st.curl0 + (st.curl1 - st.curl0) * e;
-    if (st.tilt) handR.rotation.z -= 1.25 * Math.sin(q * Math.PI);
-    if (q >= 1) { seq.shift(); st.onEnd && st.onEnd(); }
-  } else if (handAnim) {
-    handAnim.t += dt / 0.65; const q = Math.min(1, handAnim.t), s = Math.sin(q * Math.PI);
-    if (handAnim.kind === "reach") {
-      const d = handAnim.target.clone().sub(HR0), len = Math.min(d.length() * 0.8, 0.42); d.setLength(len);
-      handR.position.addScaledVector(d, s); handR.rotation.x -= 0.35 * s; curl = Math.max(0, Math.sin(Math.min(1, q * 1.4) * Math.PI));
-    } else { handR.position.y -= 0.08 * s; handR.position.z -= 0.08 * s; handR.rotation.x += 0.6 * s; curl = s; }
-    if (handAnim.t >= 1) handAnim = null;
-  }
-  curlHand(handR, Math.max(curl, held.visible ? 0.55 : 0)); curlHand(handL, padMesh.visible ? 0.45 : 0.1); updateArms();
+  // lab pad HUD + beam symbols
+  padMesh.visible = S.scene === "select" || S.scene === "manual" || S.scene === "lab"; padMesh.position.y = -0.13 + Math.sin(t * 1.6) * 0.004;
+  icons.forEach(sp => { const u = (t * 0.1 + sp.userData.ph) % 1, a = sp.userData.ph * 6.28 + t * 0.35;
+    sp.position.set(RX + Math.cos(a) * 0.5, 2.15 + u * 2.2, RZ + Math.sin(a) * 0.5); sp.material.opacity = Math.sin(u * Math.PI) * 0.9; });
   liquidLevel += (liquidTarget - liquidLevel) * k * 2; liquid.scale.y = Math.max(0.05, liquidLevel); liquid.position.y = 1.09 + 0.15 * liquid.scale.y;
   // bubble follows Flasko
   v3.copy(flasko.position); v3.y += 0.38; v3.project(camera);
