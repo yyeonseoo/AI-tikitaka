@@ -226,11 +226,14 @@ add(new THREE.BoxGeometry(5.4, 0.85, 1.3), M(0x6f8ea3), 0.1, 0.43, -2.4);
 const RX = 0.45, RZ = -2.35;
 add(new THREE.CylinderGeometry(0.34, 0.4, 0.14, 32), M(0x9fb7c4), RX, 1.02, RZ);
 const liquid = add(new THREE.CylinderGeometry(0.25, 0.25, 0.3, 32), M(0x9fe6f5, { transparent: true, opacity: 0.85 }), RX, 1.24, RZ);
+let liquidLevel = 1, liquidTarget = 1;
+const stream = add(new THREE.CylinderGeometry(0.011, 0.014, 0.42, 8), M(0x9fe6f5, { transparent: true, opacity: 0.85 }), RX - 0.1, 1.58, RZ + 0.04); stream.visible = false;
 add(new THREE.CylinderGeometry(0.28, 0.28, 0.6, 32, 1, true), M(0xe9f7fc, { transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }), RX, 1.39, RZ);
 add(new THREE.CylinderGeometry(0.31, 0.31, 0.06, 32), M(0x7fa3b5), RX, 1.71, RZ);
 const lever = group(RX + 0.42, 1.2, RZ);
 add(new THREE.CylinderGeometry(0.02, 0.02, 0.36, 8), M(0x7fa3b5), 0, 0.15, 0, lever);
 const leverKnob = add(new THREE.SphereGeometry(0.06, 16, 12), M(0xff9f6b), 0, 0.34, 0, lever);
+lever.userData.selfAnim = true;
 clickable(lever, "레버: 반응 시작", () => pullLever(), () => (S.scene === "manual" && manualReady()) || (S.scene === "lab" && S.ai.round < 10));
 const rScreen = screenPlane(0.84, 0.29, 640, 220, RX, 2.0, RZ - 0.2);
 function drawReactor(big, small, color) {
@@ -268,6 +271,7 @@ function buildShelf() {
       add(new THREE.CylinderGeometry(0.025, 0.025, 0.05, 10), M(0x17303f), 0, 0.215, 0, g);
       add(new THREE.BoxGeometry(0.07, 0.06, 0.005), M(0xffffff), 0, 0.09, 0.052, g);
       g.userData.slot = slot; g.userData.name = n;
+      g.userData.selfAnim = true;
       clickable(g, `${SLOT_KO[slot]} · ${n === "없음" ? "넣지 않음" : n}`, () => pick(slot, n, g), () => S.scene === "manual" && S.manual.tries.length < MANUAL_TRIES);
       shelfTag(n === "없음" ? "NONE" : n, gap * 0.96, 0.075, 320, -1.15 + gap * (i + 0.5), y - 0.045, 0.2, slot === "ligand" ? HC.cyan : slot === "base" ? HC.amber : HC.green);
       bottles.push(g);
@@ -354,7 +358,6 @@ function makeHand(side) {
   t.userData.base = t.rotation.y; fingers.thumb = tj;
   const wrist = add(new THREE.CylinderGeometry(0.043, 0.046, 0.07, 16), gloveM, 0, -0.004, 0.055, h); wrist.rotation.x = Math.PI / 2;
   const cuff = add(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 16), cuffM, 0, -0.004, 0.095, h); cuff.rotation.x = Math.PI / 2;
-  const sleeve = add(new THREE.CylinderGeometry(0.058, 0.075, 0.42, 18), M(0xf3f7fa, { roughness: 0.8 }), 0, -0.004, 0.32, h); sleeve.rotation.x = Math.PI / 2;
   h.userData.fingers = fingers;
   return h;
 }
@@ -362,6 +365,12 @@ const handR = makeHand(-1), handL = makeHand(1);
 const HR0 = new THREE.Vector3(0.24, -0.25, -0.5), HL0 = new THREE.Vector3(-0.23, -0.245, -0.44);
 handR.position.copy(HR0); handR.rotation.set(0.25, -0.25, 0.15); camera.add(handR);
 handL.position.copy(HL0); handL.rotation.set(0.5, 0.35, -0.35); camera.add(handL);
+const armGeo = new THREE.CylinderGeometry(0.06, 0.047, 1, 18, 1, true); armGeo.translate(0, 0.5, 0);
+const coatM = M(0xf3f7fa, { roughness: 0.85, side: THREE.DoubleSide });
+const arms = [[handR, new THREE.Vector3(0.32, -0.95, 0.25)], [handL, new THREE.Vector3(-0.32, -0.95, 0.25)]].map(([h, sh]) => { const m = new THREE.Mesh(armGeo, coatM); camera.add(m); return { h, sh, m }; });
+const UP = new THREE.Vector3(0, 1, 0), wristV = new THREE.Vector3(), dirV = new THREE.Vector3();
+function updateArms() { arms.forEach(a => { a.h.updateMatrix(); wristV.set(0, -0.004, 0.08).applyMatrix4(a.h.matrix); dirV.copy(a.sh).sub(wristV);
+  a.m.position.copy(wristV); a.m.scale.set(1, dirV.length(), 1); a.m.quaternion.setFromUnitVectors(UP, dirV.normalize()); }); }
 const held = group(0, 0.035, -0.075, handR); held.visible = false;
 const heldBody = add(new THREE.CylinderGeometry(0.022, 0.026, 0.09, 12), M(0x8fd0f0), 0, 0, 0, held);
 add(new THREE.CylinderGeometry(0.012, 0.012, 0.025, 8), M(0x17303f), 0, 0.055, 0, held);
@@ -370,8 +379,11 @@ const padMesh = add(new THREE.PlaneGeometry(0.2, 0.15), B(0xffffff, { map: pad.t
 padMesh.rotation.set(-0.28, 0.32, 0.06);
 add(new THREE.BoxGeometry(0.225, 0.172, 0.006), M(0x17303f), 0, 0, -0.005, padMesh);
 let handAnim = null;
-function animHand(kind) { handAnim = { kind, t: 0 }; }
-function reachTo(point) { if (point) handAnim = { kind: "reach", t: 0, target: camera.worldToLocal(point.clone()) }; }
+function reachTo(point) { if (point) { seq = []; handAnim = { kind: "reach", t: 0, target: camera.worldToLocal(point.clone()) }; } }
+let seq = [];
+// a point on the line of sight to p, at arm's length, so the hand covers p on screen
+function reachPoint(p) { const v = camera.worldToLocal(p.clone()).normalize().multiplyScalar(0.56); v.y -= 0.035; v.x += 0.01; return v; }
+function runSeq(steps) { handAnim = null; seq = steps.map(st => Object.assign({ t: 0, curl0: 0, curl1: 0 }, st)); }
 function curlHand(h, c) { h.userData.fingers.forEach(([f, j]) => { f.rotation.x = f.userData.base - 0.8 * c; j.rotation.x = j.userData.base - 0.9 * c; }); h.userData.fingers.thumb.rotation.x = -0.6 * c; }
 
 // ---------------------------------------------------------------- pad + monitor drawing
@@ -445,8 +457,19 @@ function enterLab() {
 function choosePair() { S.pair = S.sel; resetRuns(); buildShelf(); paintPlate(); drawReactor("READY", "시약 3개"); go("manual"); }
 function manualReady() { const k = S.manual.picks; return k.ligand && k.base && k.solvent && S.manual.tries.length < MANUAL_TRIES; }
 function pick(slot, name, g) {
+  const before = Object.values(S.manual.picks).filter(Boolean).length;
+  if (!before) { liquidTarget = liquidLevel = 0.12; liquid.material.color.setHex(0x9fe6f5); }
   S.manual.picks[slot] = name;
-  heldBody.material.color.setHex(SLOT_COLOR[slot]); held.visible = true;
+  heldBody.material.color.setHex(SLOT_COLOR[slot]); held.visible = false;
+  const bp = new THREE.Vector3(); g.getWorldPosition(bp); bp.y += 0.1;
+  const A = reachPoint(bp), Bp = reachPoint(new THREE.Vector3(RX - 0.14, 1.98, RZ + 0.05));
+  const n = Object.values(S.manual.picks).filter(Boolean).length;
+  runSeq([
+    { from: HR0, to: A, d: 0.4, curl1: 0.75, onEnd: () => { held.visible = true; } },
+    { from: A, to: Bp, d: 0.45, curl0: 0.75, curl1: 0.75 },
+    { from: Bp, to: Bp, d: 0.75, curl0: 0.75, curl1: 0.75, tilt: 1, onStart: () => { stream.material.color.setHex(SLOT_COLOR[slot]); stream.visible = true; },
+      onEnd: () => { stream.visible = false; held.visible = false; liquidTarget = 0.12 + 0.29 * n; bubbleJump(); } },
+    { from: Bp, to: HR0, d: 0.4, curl0: 0.4 }]);
   bottles.forEach(b => { if (b.userData.slot === slot) b.position.y = b.userData.y0 ?? (b.userData.y0 = b.position.y); });
   if (g.userData.y0 === undefined) g.userData.y0 = g.position.y; g.position.y = g.userData.y0 + 0.05;
   drawPad(); updatePrompt();
@@ -454,7 +477,9 @@ function pick(slot, name, g) {
 }
 function setLiquid(y) { liquid.material.color.setHSL(0.52 - 0.45 * y / 100, 0.75, 0.62); }
 function pullLever() {
-  if (!handAnim) animHand("pull"); held.visible = false;
+  { const lp = new THREE.Vector3(); leverKnob.getWorldPosition(lp); const L = reachPoint(lp), L2 = L.clone().add(new THREE.Vector3(0, -0.07, 0.04));
+    runSeq([{ from: HR0, to: L, d: 0.35, curl1: 0.85 }, { from: L, to: L2, d: 0.3, curl0: 0.85, curl1: 0.85 }, { from: L2, to: HR0, d: 0.35, curl0: 0.85 }]); }
+  liquidTarget = 1; held.visible = false;
   tween(0.3, k => { lever.rotation.z = -0.7 * Math.sin(k * Math.PI); });
   const p = P();
   if (S.scene === "manual") {
@@ -480,7 +505,7 @@ function pullLever() {
   }
   drawPad(); updatePrompt();
 }
-function bubbleJump() { tween(0.5, k => { liquid.scale.y = 1 + 0.25 * Math.sin(k * Math.PI * 3) * (1 - k); }); }
+function bubbleJump() { tween(0.6, k => { liquid.scale.x = liquid.scale.z = 1 + 0.07 * Math.sin(k * Math.PI * 4) * (1 - k); }); }
 
 // ---------------------------------------------------------------- scenes
 const SCENES = {
@@ -547,7 +572,7 @@ canvas.addEventListener("pointermove", e => {
   tip.hidden = !label; tip.textContent = label; tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px";
   canvas.style.cursor = o ? "pointer" : "default";
 });
-canvas.addEventListener("click", e => { ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); const o = hitTest(); if (o) { reachTo(lastPoint); o.userData.click.fn(); } });
+canvas.addEventListener("click", e => { ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); const o = hitTest(); if (o) { if (!o.userData.selfAnim) reachTo(lastPoint); o.userData.click.fn(); } });
 addEventListener("keydown", e => {
   if (S.scene === "select" && e.key === "ArrowLeft") { S.sel = (S.sel + D.pairs.length - 1) % D.pairs.length; onSel(); }
   if (S.scene === "select" && e.key === "ArrowRight") { S.sel = (S.sel + 1) % D.pairs.length; onSel(); }
@@ -585,7 +610,14 @@ function loop() {
   handL.position.set(HL0.x, HL0.y + bob - (padOn ? 0 : 0.12), HL0.z); padMesh.position.y = -0.13 + bob;
   handR.position.set(HR0.x, HR0.y - bob, HR0.z); handR.rotation.set(0.25, -0.25, 0.15);
   let curl = 0;
-  if (handAnim) {
+  if (seq.length) {
+    const st = seq[0]; if (st.t === 0 && st.onStart) st.onStart();
+    st.t += dt / st.d; const q = Math.min(1, st.t), e = q * q * (3 - 2 * q);
+    handR.position.lerpVectors(st.from, st.to, e); handR.position.y -= bob; handR.rotation.x -= 0.3;
+    curl = st.curl0 + (st.curl1 - st.curl0) * e;
+    if (st.tilt) handR.rotation.z -= 1.25 * Math.sin(q * Math.PI);
+    if (q >= 1) { seq.shift(); st.onEnd && st.onEnd(); }
+  } else if (handAnim) {
     handAnim.t += dt / 0.65; const q = Math.min(1, handAnim.t), s = Math.sin(q * Math.PI);
     if (handAnim.kind === "reach") {
       const d = handAnim.target.clone().sub(HR0), len = Math.min(d.length() * 0.8, 0.42); d.setLength(len);
@@ -593,7 +625,8 @@ function loop() {
     } else { handR.position.y -= 0.08 * s; handR.position.z -= 0.08 * s; handR.rotation.x += 0.6 * s; curl = s; }
     if (handAnim.t >= 1) handAnim = null;
   }
-  curlHand(handR, Math.max(curl, held.visible ? 0.55 : 0)); curlHand(handL, padMesh.visible ? 0.45 : 0.1);
+  curlHand(handR, Math.max(curl, held.visible ? 0.55 : 0)); curlHand(handL, padMesh.visible ? 0.45 : 0.1); updateArms();
+  liquidLevel += (liquidTarget - liquidLevel) * k * 2; liquid.scale.y = Math.max(0.05, liquidLevel); liquid.position.y = 1.09 + 0.15 * liquid.scale.y;
   // bubble follows Flasko
   v3.copy(flasko.position); v3.y += 0.38; v3.project(camera);
   const onScreen = v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1 && bubbleText;
