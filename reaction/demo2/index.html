@@ -472,7 +472,7 @@ function setDoor(k) { const w = 1 - 0.94 * k; doorL.scale.x = doorR.scale.x = w;
 let walking = false;
 const fadeEl = document.getElementById("fade");
 // black-out cut: fade to black, jump the camera, fade back in
-function cut(fn) { fadeEl.style.opacity = 1; wait(0.38, () => { fn(); camPos.copy(camPosT); camLook.copy(camLookT); fadeEl.style.opacity = 0; walking = false; }); }
+function cut(fn) { fadeEl.style.opacity = 1; wait(0.38, () => { fn(); camPos.copy(camPosT); camLook.copy(camLookT); flasko.position.copy(flaskoTarget); fadeEl.style.opacity = 0; walking = false; }); }
 function walk(dest) {          // lobby <-> inside
   if (walking) return; walking = true;
   if (dest !== "lobby") {
