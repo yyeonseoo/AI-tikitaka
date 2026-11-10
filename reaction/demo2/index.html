@@ -643,7 +643,7 @@ buildShelf();
 paintPlate();
 redrawAll();
 if (document.fonts) Promise.all([document.fonts.load(FD(40), "가나ABC123"), document.fonts.load(FB(20), "가나ABC"), document.fonts.load(FB(20, 600), "가나")]).then(redrawAll, () => {});
-go(location.hash.slice(1) || "lobby", true); camPos.copy(camPosT); camLook.copy(camLookT);
+go(location.hash.slice(1) || "lobby", true); camPos.copy(camPosT); camLook.copy(camLookT); flasko.position.copy(flaskoTarget);
 loop();
 </script>
 </body>
