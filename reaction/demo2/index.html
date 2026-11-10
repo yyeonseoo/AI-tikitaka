@@ -15,7 +15,8 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: #dcecf5; color: var(--ink); font-family: var(--font-body); }
 canvas#c { display: block; width: 100%; height: 100%; touch-action: none; }
 .ui { position: fixed; z-index: 5; }
-#nav { top: 12px; left: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 300px); }
+#nav { top: 12px; left: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 300px); opacity: .45; transition: opacity .2s; }
+#nav:hover, #nav:focus-within { opacity: 1; }
 #nav button { font: 13px var(--font-display); border: 0; border-radius: 99px; padding: 5px 12px; background: var(--glass); color: var(--ink); cursor: pointer; }
 #nav button[aria-current="true"] { background: var(--accent); color: var(--paper); }
 #badge { top: 12px; right: 12px; font-size: 12px; padding: 5px 12px; border-radius: 99px; background: var(--glass); max-width: 280px; }
@@ -34,7 +35,7 @@ button:focus-visible { outline: 3px solid var(--warm); outline-offset: 2px; }
 <body>
 <canvas id="c" aria-label="1인칭 3D 실험실"></canvas>
 <nav id="nav" class="ui" aria-label="장면 이동"></nav>
-<div id="badge" class="ui">시뮬레이션 · 수율은 Pfizer 공개 HTE 데이터의 실측값</div>
+<div id="badge" class="ui">시뮬레이션 · Pfizer 공개 데이터</div>
 <button id="prompt2" class="ui" hidden></button>
 <button id="prompt" class="ui"></button>
 <div id="tip" class="ui" hidden></div>
@@ -71,20 +72,24 @@ let renderer;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); }
 catch (e) { document.getElementById("fail").hidden = false; throw e; }
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.enabled = !location.search.includes("lite"); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xdcecf5);
-scene.fog = new THREE.Fog(0xdcecf5, 14, 32);
-const camera = new THREE.PerspectiveCamera(60, 1, 0.03, 100);
+scene.background = new THREE.Color(0x5f7b8f);
+scene.fog = new THREE.Fog(0x5f7b8f, 16, 34);
+const camera = new THREE.PerspectiveCamera(56, 1, 0.03, 100);
 scene.add(camera);
-scene.add(new THREE.HemisphereLight(0xffffff, 0xb5d2e2, 0.95));
-const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(3, 8, 5); scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xeaf4ff, 0x40566a, 0.6));
+const sun = new THREE.DirectionalLight(0xfff6ec, 1.0); sun.position.set(2.5, 7, 4.5); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 20 }); sun.shadow.bias = -0.0005; scene.add(sun);
+const cool = new THREE.PointLight(0x7fe0f5, 0.9, 6); cool.position.set(0.45, 2.4, -1.8); scene.add(cool);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const M = (color, extra) => new THREE.MeshToonMaterial(Object.assign({ color }, extra || {}));
+const M = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.5, metalness: 0.05 }, extra || {}));
 const B = (color, extra) => new THREE.MeshBasicMaterial(Object.assign({ color }, extra || {}));
-function add(geo, mat, x, y, z, parent) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); (parent || scene).add(m); return m; }
+function add(geo, mat, x, y, z, parent) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = !(mat.transparent || mat.isMeshBasicMaterial); (parent || scene).add(m); return m; }
 function group(x, y, z, parent) { const g = new THREE.Group(); g.position.set(x, y, z); (parent || scene).add(g); return g; }
-function canvasTex(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; return { c, ctx: c.getContext("2d"), tex }; }
+function canvasTex(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; tex.encoding = THREE.sRGBEncoding; return { c, ctx: c.getContext("2d"), tex }; }
 function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function screenPlane(w, h, cw, ch, x, y, z, ry, parent) {
   const t = canvasTex(cw, ch); const m = add(new THREE.PlaneGeometry(w, h), B(0xffffff, { map: t.tex }), x, y, z, parent); m.rotation.y = ry || 0; return Object.assign(t, { mesh: m });
@@ -93,16 +98,29 @@ const FD = (px) => `${px}px Jua, "Noto Sans KR", sans-serif`;
 const FB = (px, w) => `${w || 400} ${px}px "Noto Sans KR", sans-serif`;
 
 // ---------------------------------------------------------------- room
-add(new THREE.PlaneGeometry(40, 40), M(0xeaf3f8), 0, 0, 0).rotation.x = -Math.PI / 2;
-const wallM = M(0xf4f9fc);
+{ const t = canvasTex(256, 256); t.ctx.fillStyle = "#4f6578"; t.ctx.fillRect(0, 0, 256, 256); t.ctx.fillStyle = "#566d81"; t.ctx.fillRect(0, 0, 128, 128); t.ctx.fillRect(128, 128, 128, 128);
+  t.ctx.strokeStyle = "#3b4f60"; t.ctx.lineWidth = 3; t.ctx.strokeRect(0, 0, 256, 256); t.tex.wrapS = t.tex.wrapT = THREE.RepeatWrapping; t.tex.repeat.set(20, 20); t.tex.minFilter = THREE.LinearMipmapLinearFilter; t.tex.generateMipmaps = true;
+  add(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ map: t.tex, roughness: 0.35, metalness: 0.1 }), 0, 0, 0).rotation.x = -Math.PI / 2; }
+const wallM = M(0xb4cfdd);
 add(new THREE.BoxGeometry(16, 4.2, 0.2), wallM, 0, 2.1, -4.1);
 add(new THREE.BoxGeometry(0.2, 4.2, 11.2), wallM, -8.1, 2.1, 1.5);
 add(new THREE.BoxGeometry(0.2, 4.2, 11.2), wallM, 8.1, 2.1, 1.5);
 add(new THREE.BoxGeometry(6.5, 4.2, 0.2), wallM, -4.75, 2.1, 7.1);
 add(new THREE.BoxGeometry(6.5, 4.2, 0.2), wallM, 4.75, 2.1, 7.1);
 add(new THREE.BoxGeometry(3, 1.6, 0.2), wallM, 0, 3.4, 7.1);
-add(new THREE.BoxGeometry(16.2, 0.08, 0.06), M(0x8fd0f0), 0, 1.05, -3.98);       // wall stripe
-const ringLight = add(new THREE.TorusGeometry(1.1, 0.05, 8, 48), B(0x9fe6f5), 0.4, 3.6, -2.3); ringLight.rotation.x = Math.PI / 2;
+const panelM = M(0x35566c);
+add(new THREE.BoxGeometry(16.2, 1.0, 0.06), panelM, 0, 0.5, -3.97); add(new THREE.BoxGeometry(0.06, 1.0, 11.2), panelM, -7.97, 0.5, 1.5); add(new THREE.BoxGeometry(0.06, 1.0, 11.2), panelM, 7.97, 0.5, 1.5);
+add(new THREE.BoxGeometry(16.2, 0.05, 0.08), M(0x58d0e8, { emissive: 0x2a9fd0, emissiveIntensity: 0.6 }), 0, 1.02, -3.95);
+add(new THREE.PlaneGeometry(16.2, 11.2), M(0xdfe8ee), 0, 4.2, 1.5).rotation.x = Math.PI / 2;
+[[-3.5, -1.5], [3.5, -1.5], [-3.5, 3.5], [3.5, 3.5]].forEach(([x, z]) => add(new THREE.BoxGeometry(1.6, 0.04, 0.6), B(0xf4fbff), x, 4.17, z));
+// fume hood (back wall, right)
+{ const h = group(4.3, 0, -3.5); add(new THREE.BoxGeometry(2.4, 0.9, 0.9), M(0x6f8ea3), 0, 0.45, 0, h); add(new THREE.BoxGeometry(2.4, 0.06, 0.95), M(0xf2f6f8), 0, 0.93, 0, h);
+  add(new THREE.BoxGeometry(2.4, 1.5, 0.08), M(0xe7eef2), 0, 1.7, -0.42, h); add(new THREE.BoxGeometry(0.1, 1.5, 0.9), M(0xe7eef2), -1.15, 1.7, 0, h); add(new THREE.BoxGeometry(0.1, 1.5, 0.9), M(0xe7eef2), 1.15, 1.7, 0, h);
+  add(new THREE.BoxGeometry(2.4, 0.5, 0.9), M(0xe7eef2), 0, 2.7, 0, h); add(new THREE.BoxGeometry(2.2, 1.0, 0.03), M(0xbfe6f5, { transparent: true, opacity: 0.35 }), 0, 1.75, 0.43, h);
+  [-0.6, 0, 0.6].forEach(x => add(new THREE.CylinderGeometry(0.06, 0.09, 0.22, 14), M(0xff9f6b), x, 1.07, -0.1, h)); }
+// wall cabinets (left wall)
+[-2.4, -0.6, 1.2].forEach(z => { add(new THREE.BoxGeometry(0.6, 0.9, 1.6), M(0x6f8ea3), -7.7, 0.45, z); add(new THREE.BoxGeometry(0.65, 0.05, 1.65), M(0xf2f6f8), -7.7, 0.93, z); });
+const ringLight = add(new THREE.TorusGeometry(1.1, 0.05, 8, 48), B(0x9fe6f5), 0.4, 4.1, -2.3); ringLight.rotation.x = Math.PI / 2;
 
 // ---------------------------------------------------------------- interaction registry
 const clickables = [];
@@ -118,27 +136,21 @@ const tweens = [];
 function tween(d, fn, done) { tweens.push({ t: 0, d, fn, done }); }
 
 // ---------------------------------------------------------------- lobby: door, sign, board, marquee
-const doorL = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), M(0xcfeaf5, { transparent: true, opacity: 0.85 }), -0.75, 1.3, 7.1);
-const doorR = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), M(0xcfeaf5, { transparent: true, opacity: 0.85 }), 0.75, 1.3, 7.1);
+const doorM = () => M(0x9cc9dc, { roughness: 0.15, metalness: 0.2 });
+const doorL = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), doorM(), -0.75, 1.3, 7.1);
+const doorR = add(new THREE.BoxGeometry(1.5, 2.6, 0.08), doorM(), 0.75, 1.3, 7.1);
+[-0.06, 0.06].forEach(x => add(new THREE.BoxGeometry(0.03, 0.5, 0.05), M(0x35566c), x, 1.25, 7.17));
+add(new THREE.BoxGeometry(3.3, 0.12, 0.3), M(0x35566c), 0, 2.66, 7.1); [-1.6, 1.6].forEach(x => add(new THREE.BoxGeometry(0.12, 2.7, 0.3), M(0x35566c), x, 1.35, 7.1));
 const doorGroup = new THREE.Group(); doorGroup.add(doorL, doorR); scene.add(doorGroup);
 clickable(doorGroup, "실험실 문", () => enterLab(), () => S.scene === "lobby");
 const sign = screenPlane(2.2, 0.5, 880, 200, 0, 2.95, 7.21);
 sign.ctx.fillStyle = "#17303f"; rrect(sign.ctx, 0, 0, 880, 200, 40); sign.ctx.fill();
-sign.ctx.fillStyle = "#9fe6f5"; sign.ctx.font = FD(96); sign.ctx.textAlign = "center"; sign.ctx.textBaseline = "middle"; sign.ctx.fillText("ReactPilot 랩", 440, 104);
-const board = screenPlane(2.4, 1.5, 960, 600, -3.4, 1.8, 7.21);
-const marquee = screenPlane(5.6, 0.34, 2240, 136, 0, 3.75, 7.21);
-function drawLobby() {
-  let x = board.ctx; x.fillStyle = "#ffffff"; rrect(x, 0, 0, 960, 600, 40); x.fill(); x.strokeStyle = "#8fd0f0"; x.lineWidth = 10; x.stroke();
-  x.fillStyle = "#1f8fbf"; x.font = FD(46); x.textAlign = "left"; x.fillText("오늘의 문제", 60, 100);
-  x.fillStyle = "#17303f"; x.font = FD(64); x.fillText("새 기질이 왔다!", 60, 210); x.fillText("384개 조건 중", 60, 300); x.fillText("어디부터 실험할까?", 60, 390);
-  x.font = FB(30); x.fillStyle = "#5a7180"; x.fillText("리간드 12 × 염기 8 × 용매 4 = 384", 60, 500); board.tex.needsUpdate = true;
-  x = marquee.ctx; x.fillStyle = "#17303f"; x.fillRect(0, 0, 2240, 136); x.fillStyle = "#ffd36b"; x.font = FD(70); x.textAlign = "center"; x.textBaseline = "middle";
-  x.fillText(`무작위 대비 실험 약 50% 감소  ·  표준 BO보다 35% 적음  ·  상위 20개 안 성공 ${GLOBAL.hit20}%`, 1120, 72); marquee.tex.needsUpdate = true;
-}
+sign.ctx.fillStyle = "#9fe6f5"; sign.ctx.font = FD(104); sign.ctx.textAlign = "center"; sign.ctx.textBaseline = "middle"; sign.ctx.fillText("ReactPilot LAB", 440, 104);
+function drawLobby() {}
 
 // ---------------------------------------------------------------- select: carousel
 const TT = group(-4.5, 0, 0);
-add(new THREE.CylinderGeometry(1.55, 1.7, 0.9, 40), M(0xd5edf7), 0, 0.45, 0, TT);
+add(new THREE.CylinderGeometry(1.55, 1.7, 0.9, 40), M(0x35566c), 0, 0.45, 0, TT); add(new THREE.CylinderGeometry(1.56, 1.56, 0.04, 40), M(0xf2f6f8), 0, 0.91, 0, TT);
 const spin = group(0, 0.92, 0, TT);
 const slotGroups = [];
 D.pairs.forEach((p, i) => {
@@ -183,14 +195,14 @@ function onSel() {
   buildMol(molB, (D.mols["nucleophile|" + p.nucleophile] || {}).mol);
   const x = selLabel.ctx; x.clearRect(0, 0, 1040, 248); x.fillStyle = "rgba(23,48,63,.9)"; rrect(x, 0, 0, 1040, 248, 40); x.fill();
   x.textAlign = "center"; x.fillStyle = "#9fe6f5"; x.font = FD(56); x.fillText(`${noteOf("electrophile", p.electrophile)} + ${noteOf("nucleophile", p.nucleophile)}`, 520, 98);
-  x.fillStyle = "#ffd36b"; x.font = FD(48); x.fillText(`난이도 ${stars(p)}  ·  좋은 조건 384개 중 ${p.nearCount}개  ·  ${S.sel + 1}/${D.pairs.length}`, 520, 186);
+  x.fillStyle = "#ffd36b"; x.font = FD(52); x.fillText(`난이도 ${stars(p)}`, 520, 190);
   selLabel.tex.needsUpdate = true;
-  drawPad(); speak(S.scene === "select" ? "오늘 실험할 반응을 골라 주세요. 별이 많을수록 좋은 조건이 드물어요." : null);
+  drawPad();
 }
 
 // ---------------------------------------------------------------- bench, reactor, shelf, plate, red button
-add(new THREE.BoxGeometry(5.6, 0.1, 1.5), M(0xffffff), 0.1, 0.9, -2.4);
-add(new THREE.BoxGeometry(5.4, 0.85, 1.3), M(0xd5edf7), 0.1, 0.43, -2.4);
+add(new THREE.BoxGeometry(5.6, 0.1, 1.5), M(0x2b3d4a, { roughness: 0.3 }), 0.1, 0.9, -2.4);
+add(new THREE.BoxGeometry(5.4, 0.85, 1.3), M(0x6f8ea3), 0.1, 0.43, -2.4);
 const RX = 0.45, RZ = -2.35;
 add(new THREE.CylinderGeometry(0.34, 0.4, 0.14, 32), M(0x9fb7c4), RX, 1.02, RZ);
 const liquid = add(new THREE.CylinderGeometry(0.25, 0.25, 0.3, 32), M(0x9fe6f5, { transparent: true, opacity: 0.85 }), RX, 1.24, RZ);
@@ -212,7 +224,7 @@ clickable(redBtn, "AI 부르기", () => go("lab"), () => S.scene === "manual");
 // shelf
 const SH = group(-1.35, 0, -3.55);
 [1.3, 1.68, 2.06].forEach(y => add(new THREE.BoxGeometry(2.5, 0.04, 0.34), M(0xffffff), 0, y, 0, SH));
-add(new THREE.BoxGeometry(2.5, 1.2, 0.04), M(0xd5edf7), 0, 1.7, -0.17, SH);
+add(new THREE.BoxGeometry(2.5, 1.2, 0.04), M(0x35566c), 0, 1.7, -0.17, SH);
 const SLOT_COLOR = { ligand: 0x8fd0f0, base: 0xffd36b, solvent: 0x6fd39a };
 const SLOT_KO = { ligand: "리간드", base: "염기", solvent: "용매" };
 let bottles = [];
@@ -240,7 +252,7 @@ const wellGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.012, 10);
 const wells = new THREE.InstancedMesh(wellGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), COLS * ROWS);
 wells.position.set(PX, 0.995, PZ); scene.add(wells);
 { const o = new THREE.Object3D(); for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { o.position.set((c - (COLS - 1) / 2) * 0.042, 0, (r - (ROWS - 1) / 2) * 0.044); o.updateMatrix(); wells.setMatrixAt(r * COLS + c, o.matrix); } }
-const cA = new THREE.Color(0xe4eef4), cB = new THREE.Color(0x1fb3e0), cDone = new THREE.Color(0xff9f6b), cWin = new THREE.Color(0x2f9e6a), tmpC = new THREE.Color();
+const cA = new THREE.Color(0xe4eef4), cB = new THREE.Color(0x00a8e8), cDone = new THREE.Color(0xff9f6b), cWin = new THREE.Color(0x2f9e6a), tmpC = new THREE.Color();
 function wellIndex(p, i) { const ls = lists(p), c = p.conds[i]; return ls.ligand.indexOf(c[0]) * COLS + ls.base.indexOf(c[1]) * 4 + ls.solvent.indexOf(c[2]); }
 function paintPlate() {
   const p = P(), r = Math.min(S.ai.round, 9), pred = p.preds[r];
@@ -264,7 +276,7 @@ add(new THREE.CylinderGeometry(0.9, 0.9, 1.6, 32, 1, true), B(0x9fe6f5, { transp
 const orbs = [["예측", "모델이 384개 조건의 수율을 예측하고 높은 순으로 줄 세워요.", 0x1f8fbf], ["실험", "상위 4개를 실험해요. 지금은 데이터의 실측값을 꺼내 와요.", 0xff9f6b], ["재학습", "새 결과를 더해 모델을 다시 학습하고, 다음 4개를 골라요.", 0x2f9e6a]].map(([name, text, col], i) => {
   const o = add(new THREE.SphereGeometry(0.14, 20, 16), M(col), 0, 1.2, 0, HOW);
   const t = canvasTex(256, 96); t.ctx.fillStyle = "#17303f"; rrect(t.ctx, 0, 0, 256, 96, 30); t.ctx.fill(); t.ctx.fillStyle = "#fff"; t.ctx.font = FD(52); t.ctx.textAlign = "center"; t.ctx.fillText(name, 128, 66);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex, depthTest: false })); sp.scale.set(0.42, 0.16, 1); sp.position.y = 0.28; o.add(sp);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex })); sp.scale.set(0.42, 0.16, 1); sp.position.y = 0.28; o.add(sp);
   clickable(o, name, () => speak(text), () => S.scene === "how"); o.userData.phase = i * 2 * Math.PI / 3; return o;
 });
 const howA = screenPlane(1.6, 1.0, 640, 400, 2.4, 1.8, 3.2, 0.5), howB = screenPlane(1.6, 1.0, 640, 400, 6.6, 1.8, 3.2, -0.5);
@@ -292,7 +304,7 @@ let bubbleText = null;
 function speak(t) { if (t !== null && t !== undefined) { bubbleText = t; bubble.textContent = t; } }
 
 // ---------------------------------------------------------------- hands + lab pad (children of camera)
-const gloveM = M(0x8fd0f0), cuffM = M(0x5fb6de);
+const gloveM = M(0x6fc3ef, { roughness: 0.65 }), cuffM = M(0x3f9fd0, { roughness: 0.65 });
 function makeHand(side) {
   const h = new THREE.Group();
   const palm = add(new THREE.SphereGeometry(0.05, 16, 12), gloveM, 0, 0, 0, h); palm.scale.set(1.15, 0.55, 1.35);
@@ -322,39 +334,28 @@ let handAnim = null;
 function animHand(kind) { handAnim = { kind, t: 0 }; }
 
 // ---------------------------------------------------------------- pad + monitor drawing
-function padFrame(title) {
-  const x = pad.ctx; x.fillStyle = "#f7fbfd"; x.fillRect(0, 0, 640, 480); x.fillStyle = "#17303f"; x.fillRect(0, 0, 640, 70);
-  x.fillStyle = "#9fe6f5"; x.font = FD(38); x.textAlign = "left"; x.fillText("랩패드 · " + title, 24, 48); x.textAlign = "left"; return x;
-}
-function bar(x, y, n, total, used) { for (let i = 0; i < total; i++) { x.fillStyle = i < used ? "#c4d6e1" : "#1f8fbf"; rrect(x, 24 + i * (592 / total), y, 592 / total - 6, 30, 6); x.fill(); } }
 function drawPad() {
-  const p = S.scene === "select" ? D.pairs[S.sel] : P(); let x;
-  if (S.scene === "lobby") { x = padFrame("대기"); x.fillStyle = "#17303f"; x.font = FD(46); x.fillText("문을 눌러 입장하세요", 24, 170); }
-  else if (S.scene === "select") {
-    x = padFrame("AI 친숙도"); const f = p.familiar, score = Math.min(1, (f.sameElectrophile + f.sameNucleophile) / 8);
-    x.strokeStyle = "#c4d6e1"; x.lineWidth = 26; x.beginPath(); x.arc(320, 290, 150, Math.PI, 2 * Math.PI); x.stroke();
-    x.strokeStyle = score > 0.5 ? "#2f9e6a" : "#ff9f6b"; x.beginPath(); x.arc(320, 290, 150, Math.PI, Math.PI + Math.PI * score); x.stroke();
-    x.fillStyle = "#17303f"; x.font = FD(34); x.textAlign = "center"; x.fillText(score > 0.5 ? "익숙한 반응" : "낯선 반응", 320, 270);
-    x.font = FB(24); x.fillStyle = "#5a7180"; x.fillText(`학습한 쌍 중 같은 친전자체 ${f.sameElectrophile}개 · 같은 친핵체 ${f.sameNucleophile}개`, 320, 340);
-    if (f.roleSwapped) x.fillText("역할이 바뀐 반응이라 예측이 어려울 수 있어요", 320, 380);
-    x.fillText("주의: 처음 보는 작용기는 예측이 약해요", 320, 430);
+  const p = S.scene === "select" ? D.pairs[S.sel] : P(), x = pad.ctx;
+  x.fillStyle = "#f4f8fa"; x.fillRect(0, 0, 640, 480); x.textAlign = "left";
+  const big = (label, val, X, Y, col) => { x.fillStyle = "#6b8191"; x.font = FB(28); x.fillText(label, X, Y); x.fillStyle = col || "#17303f"; x.font = FD(96); x.fillText(val, X, Y + 100); };
+  if (S.scene === "select") {
+    const f = p.familiar, n = f.sameElectrophile + f.sameNucleophile, score = Math.min(1, n / 8), col = score > 0.5 ? "#2f9e6a" : "#e07b3b";
+    big("AI 친숙도", score > 0.5 ? "높음" : "낮음", 40, 80, col);
+    x.fillStyle = "#d5e2ea"; rrect(x, 40, 250, 560, 28, 14); x.fill(); x.fillStyle = col; rrect(x, 40, 250, Math.max(28, 560 * score), 28, 14); x.fill();
+    x.fillStyle = "#6b8191"; x.font = FB(26); x.fillText(`같은 시약을 쓴 학습 반응 ${n}건`, 40, 330);
   } else if (S.scene === "manual") {
-    const m = S.manual; x = padFrame("직접 실험");
-    x.fillStyle = "#17303f"; x.font = FD(32); x.fillText(`남은 실험 ${MANUAL_TRIES - m.tries.length} / ${MANUAL_TRIES}`, 24, 118); bar(x, 132, 0, MANUAL_TRIES, m.tries.length);
-    x.font = FD(32); x.fillText(`내 최고 수율 ${m.best.toFixed(1)}%`, 24, 210);
-    x.font = FB(24); ["ligand", "base", "solvent"].forEach((s, i) => { x.fillStyle = m.picks[s] ? "#1f8fbf" : "#9aaab4"; x.fillText(`${m.picks[s] ? "✔" : "○"} ${SLOT_KO[s]}: ${m.picks[s] || "선반에서 고르기"}`, 24, 252 + i * 32); });
-    x.fillStyle = "#5a7180"; x.font = FB(22); m.tries.slice(-3).reverse().forEach((t, i) => x.fillText(`#${m.tries.length - i}  ${t.c.join(" · ")}  →  ${t.y.toFixed(1)}%`, 24, 372 + i * 32));
+    const m = S.manual;
+    big("남은 실험", String(MANUAL_TRIES - m.tries.length), 40, 70); big("내 최고", m.best ? m.best.toFixed(0) + "%" : "–", 340, 70, "#e07b3b");
+    ["ligand", "base", "solvent"].forEach((s, i) => { const on = !!m.picks[s]; x.fillStyle = on ? "#1f8fbf" : "#dfe8ee"; rrect(x, 40 + i * 190, 240, 176, 70, 18); x.fill();
+      x.fillStyle = on ? "#ffffff" : "#6b8191"; x.font = FD(34); x.textAlign = "center"; x.fillText(SLOT_KO[s], 128 + i * 190, 287); x.textAlign = "left"; });
+    if (m.tries.length) { const t = m.tries[m.tries.length - 1]; x.fillStyle = "#6b8191"; x.font = FB(24); x.fillText(`직전  ${t.c.join(" · ")}  →  ${t.y.toFixed(1)}%`, 40, 370); }
   } else if (S.scene === "lab") {
-    const a = S.ai; x = padFrame("AI 실험");
-    x.fillStyle = "#17303f"; x.font = FD(32); x.fillText(`사용한 실험 ${a.revealed.length} / 40`, 24, 118); x.fillText(`최고 ${a.best.toFixed(1)}%`, 380, 118);
-    x.font = FB(22); x.fillStyle = "#5a7180"; x.fillText(`무작위였다면 준최적까지 기대 ${p.randomExpected}회`, 24, 156);
-    if (a.round < 10) {
-      x.fillStyle = "#1f8fbf"; x.font = FD(30); x.fillText("다음 배치 (AI 추천 4개)", 24, 210);
-      p.order.slice(a.round * 4, a.round * 4 + 4).forEach((i, k) => { x.fillStyle = "#17303f"; x.font = FB(23); x.fillText(`${p.conds[i].join(" · ")}`, 24, 252 + k * 40); x.textAlign = "right"; x.fillText(`예측 ${p.preds[a.round][i].toFixed(0)}%`, 616, 252 + k * 40); x.textAlign = "left"; });
-    } else { x.fillStyle = "#17303f"; x.font = FD(34); x.fillText("40회를 모두 썼어요", 24, 230); }
-    if (a.foundAt) { x.fillStyle = "#2f9e6a"; x.font = FD(30); x.fillText(`준최적 발견! (${a.foundAt}번째 실험)`, 24, 440); }
-  } else if (S.scene === "report") { x = padFrame("요약"); x.fillStyle = "#17303f"; x.font = FD(34); wrap(x, savingLine(), 24, 150, 592, 50); }
-  else { x = padFrame("원리"); x.fillStyle = "#17303f"; x.font = FD(34); x.fillText("구슬을 눌러 보세요", 24, 170); }
+    const a = S.ai;
+    big("사용한 실험", String(a.revealed.length), 40, 70); big("최고", a.best ? a.best.toFixed(0) + "%" : "–", 340, 70, a.foundAt ? "#2f9e6a" : "#e07b3b");
+    if (a.round < 10) { x.fillStyle = "#6b8191"; x.font = FB(26); x.fillText("다음 추천 4개", 40, 250);
+      p.order.slice(a.round * 4, a.round * 4 + 4).forEach((i, k) => { x.fillStyle = "#17303f"; x.font = FB(25); x.fillText(p.conds[i].join(" · "), 40, 295 + k * 40);
+        x.textAlign = "right"; x.fillStyle = "#1f8fbf"; x.fillText(p.preds[a.round][i].toFixed(0) + "%", 600, 295 + k * 40); x.textAlign = "left"; }); }
+  }
   pad.tex.needsUpdate = true;
 }
 function wrap(x, text, X, Y, W, LH) { let line = "", y = Y; for (const ch of text) { if (x.measureText(line + ch).width > W) { x.fillText(line, X, y); line = ch; y += LH; } else line += ch; } x.fillText(line, X, y); }
@@ -363,8 +364,8 @@ function savingLine() {
   const p = P(), me = S.manual.foundAt, ai = p.aiFound;
   if (!ai) return "이 반응은 AI도 40회 안에 준최적을 못 찾은 어려운 반응이에요. 15쌍 평균은 모니터에서 보세요.";
   if (!S.manual.tries.length) return `AI는 ${ai}회 만에 준최적을 찾았어요. 무작위였다면 평균 ${p.randomExpected}회예요.`;
-  if (me) return me <= ai ? `대단해요! 나는 ${me}회, AI는 ${ai}회 만에 찾았어요.` : `나는 ${me}회, AI는 ${ai}회 만에 찾았어요. 실험 ${me - ai}회를 아낄 수 있었어요.`;
-  return `나는 ${S.manual.tries.length}회 동안 못 찾았고, AI는 ${ai}회 만에 찾았어요. 실험을 ${S.manual.tries.length - ai}회 이상 아낄 수 있었어요.`;
+  if (me) return me <= ai ? `나 ${me}회, AI ${ai}회 만에 찾았어요.` : `나 ${me}회, AI ${ai}회. 실험 ${me - ai}회를 줄였어요.`;
+  return `나는 ${S.manual.tries.length}회 동안 못 찾았고, AI는 ${ai}회 만에 찾았어요.`;
 }
 function drawMonitor() {
   const x = monitor.ctx, p = P(); x.fillStyle = "#17303f"; x.fillRect(0, 0, 1280, 720);
@@ -398,7 +399,7 @@ function enterLab() {
   S.opened = true;
   tween(reduceMotion ? 0.01 : 0.9, k => { doorL.position.x = -0.75 - 1.4 * k; doorR.position.x = 0.75 + 1.4 * k; }, () => go("select"));
 }
-function choosePair() { S.pair = S.sel; resetRuns(); buildShelf(); paintPlate(); drawReactor("대기 중", "시약을 넣어 주세요"); go("manual"); }
+function choosePair() { S.pair = S.sel; resetRuns(); buildShelf(); paintPlate(); drawReactor("READY", "시약 3개"); go("manual"); }
 function manualReady() { const k = S.manual.picks; return k.ligand && k.base && k.solvent && S.manual.tries.length < MANUAL_TRIES; }
 function pick(slot, name, g) {
   S.manual.picks[slot] = name; animHand("reach");
@@ -406,7 +407,7 @@ function pick(slot, name, g) {
   bottles.forEach(b => { if (b.userData.slot === slot) b.position.y = b.userData.y0 ?? (b.userData.y0 = b.position.y); });
   if (g.userData.y0 === undefined) g.userData.y0 = g.position.y; g.position.y = g.userData.y0 + 0.05;
   drawPad(); updatePrompt();
-  if (manualReady()) speak("세 가지를 다 골랐어요! 반응기 옆 레버를 당겨 보세요.");
+  if (manualReady()) speak("레버를 당기면 반응이 시작돼요.");
 }
 function setLiquid(y) { liquid.material.color.setHSL(0.52 - 0.45 * y / 100, 0.75, 0.62); }
 function pullLever() {
@@ -420,19 +421,19 @@ function pullLever() {
     bottles.forEach(b => { if (b.userData.y0 !== undefined) b.position.y = b.userData.y0; });
     setLiquid(y); bubbleJump();
     const hit = y >= p.best - NEAR;
-    drawReactor(`${y.toFixed(1)}%`, hit ? "준최적 조건이에요!" : `${m.tries.length}번째 실험`, hit ? "#5fcf98" : "#ffd36b");
-    if (hit && !m.foundAt) { m.foundAt = m.tries.length; flaskoSpin = 1; speak("와, 찾으셨어요! 이제 AI와 비교해 볼까요?"); }
-    else if (m.tries.length >= MANUAL_TRIES) speak("기회를 다 썼어요. 이번엔 제가 도와드릴게요!");
-    else speak(y < 20 ? "음, 수율이 낮네요. 다른 조합을 시도해 볼까요?" : "괜찮은데요? 더 좋은 조건이 있을지도 몰라요.");
+    drawReactor(`${y.toFixed(1)}%`, `${m.tries.length}번째 실험`, hit ? "#5fcf98" : "#ffd36b");
+    if (hit && !m.foundAt) { m.foundAt = m.tries.length; flaskoSpin = 1; speak("준최적 조건이에요."); }
+    else if (m.tries.length >= MANUAL_TRIES) speak("기회를 다 썼어요. 이번엔 AI 차례예요.");
+    else speak(y < 20 ? "수율이 낮아요." : "나쁘지 않아요.");
   } else {
     const a = S.ai, idx = p.order.slice(a.round * 4, a.round * 4 + 4);
     idx.forEach((i, k) => { a.revealed.push(i); a.best = Math.max(a.best, p.y[i]); if (!a.foundAt && p.y[i] >= p.best - NEAR) a.foundAt = a.revealed.length; });
     a.round++; paintPlate(); setLiquid(a.best);
     const top = Math.max(...idx.map(i => p.y[i]));
-    drawReactor(`최고 ${top.toFixed(1)}%`, `배치 ${a.round} · 4개 동시 실험`, a.foundAt ? "#5fcf98" : "#ffd36b");
-    if (a.foundAt && a.foundAt > a.revealed.length - 4) { flaskoSpin = 1; speak(`준최적 조건 발견! ${a.foundAt}번째 실험이에요.`); }
-    else if (a.round >= 10) speak("40회를 모두 썼어요. 모니터에서 결과를 볼까요?");
-    else speak("결과를 반영해서 다시 학습했어요. 플레이트 빛이 바뀐 게 보이세요?");
+    drawReactor(`${top.toFixed(1)}%`, `배치 ${a.round}`, a.foundAt ? "#5fcf98" : "#ffd36b");
+    if (a.foundAt && a.foundAt > a.revealed.length - 4) { flaskoSpin = 1; speak(`${a.foundAt}번째 실험에서 찾았어요.`); }
+    else if (a.round >= 10) speak("40회를 다 썼어요.");
+    else speak("결과를 반영해 다시 골랐어요.");
   }
   drawPad(); updatePrompt();
 }
@@ -440,12 +441,12 @@ function bubbleJump() { tween(0.5, k => { liquid.scale.y = 1 + 0.25 * Math.sin(k
 
 // ---------------------------------------------------------------- scenes
 const SCENES = {
-  lobby: { name: "입구", cam: [0, 1.6, 10.6], look: [0, 1.7, 7], fl: [2.3, 1.5, 8.2], say: "어서 오세요! 문을 눌러 실험실로 들어가요." },
-  select: { name: "기질 보관함", cam: [-4.5, 1.75, 3.6], look: [-4.5, 1.6, 0], fl: [-2.7, 1.9, 1.3], say: "오늘 실험할 반응을 골라 주세요. 별이 많을수록 좋은 조건이 드물어요." },
-  manual: { name: "직접 실험", cam: [-0.3, 1.78, 0.95], look: [-0.3, 1.3, -2.8], fl: [-2.5, 1.85, -1.6], say: "먼저 직접 해 보세요. 선반에서 리간드, 염기, 용매를 하나씩 집어 반응기에 넣으면 돼요. 기회는 12번!" },
-  lab: { name: "AI와 실험", cam: [1.1, 1.95, 0.75], look: [1.1, 1.0, -2.45], fl: [RX - 0.9, 2.0, -1.9], say: "과거 14쌍 데이터로 학습해서 추천했어요. 레버를 당기면 4개를 한 번에 실험해요." },
-  report: { name: "나 vs AI", cam: [4.4, 1.85, -0.4], look: [7.9, 1.9, -0.4], fl: [6.6, 2.7, 0.9], say: "왼쪽은 이번 반응의 곡선, 오른쪽 아래는 15쌍 평균 성능이에요." },
-  how: { name: "원리", cam: [4.5, 1.8, 6.6], look: [4.5, 1.3, 3.4], fl: [3.1, 2.1, 4.6], say: "구슬을 눌러 보세요. 예측, 실험, 재학습이 계속 돌아요." },
+  lobby: { name: "입구", cam: [0, 1.7, 11.8], look: [0, 1.6, 7], fl: [1.75, 1.55, 8.6], say: "384개 조건, 어디부터 실험할까요?" },
+  select: { name: "기질 보관함", cam: [-4.5, 1.75, 3.6], look: [-4.5, 1.6, 0], fl: [-2.7, 1.9, 1.3], say: "실험할 반응을 고르세요." },
+  manual: { name: "직접 실험", cam: [-0.3, 1.78, 0.95], look: [-0.3, 1.3, -2.8], fl: [-2.5, 1.85, -1.6], say: "먼저 직접 해 보세요. 기회는 12번이에요." },
+  lab: { name: "AI와 실험", cam: [1.1, 1.95, 0.75], look: [1.1, 1.0, -2.45], fl: [RX - 0.9, 2.0, -1.9], say: "과거 실험 기록으로 고른 4개예요." },
+  report: { name: "나 vs AI", cam: [4.4, 1.85, -0.4], look: [7.9, 1.9, -0.4], fl: [6.6, 2.7, 0.9], say: "이번 반응과 15쌍 평균이에요." },
+  how: { name: "원리", cam: [4.5, 1.8, 6.6], look: [4.5, 1.3, 3.4], fl: [3.1, 2.1, 4.6], say: "구슬을 눌러 보세요." },
 };
 const camPos = new THREE.Vector3(...SCENES.lobby.cam), camLook = new THREE.Vector3(...SCENES.lobby.look);
 const camPosT = camPos.clone(), camLookT = camLook.clone();
@@ -458,7 +459,7 @@ function go(k) {
   S.scene = k; const s = SCENES[k];
   camPosT.set(...s.cam); camLookT.set(...s.look); flaskoTarget.set(...s.fl);
   if (reduceMotion) { camPos.copy(camPosT); camLook.copy(camLookT); }
-  if (k === "lab") { paintPlate(); if (!S.ai.revealed.length) drawReactor("AI 준비 완료", "레버를 당겨 주세요"); }
+  if (k === "lab") { paintPlate(); if (!S.ai.revealed.length) drawReactor("AI READY", ""); }
   if (k === "report") drawMonitor();
   if (k === "select") onSel();
   speak(s.say); drawPad(); updatePrompt();
@@ -468,16 +469,16 @@ function go(k) {
 const promptBtn = document.getElementById("prompt"), prompt2 = document.getElementById("prompt2");
 function updatePrompt() {
   const k = S.scene; let t = "", act = null, t2 = "", act2 = null;
-  if (k === "lobby") { t = "문을 클릭해 입장"; act = enterLab; }
-  else if (k === "select") { t = "이 반응으로 실험하기"; act = choosePair; t2 = "◀ ▶ 화살표로 돌리기"; act2 = () => { S.sel = (S.sel + 1) % D.pairs.length; onSel(); }; }
+  if (k === "lobby") { t = "입장"; act = enterLab; }
+  else if (k === "select") { t = "이 반응으로 실험"; act = choosePair; t2 = "다음 반응 ▶"; act2 = () => { S.sel = (S.sel + 1) % D.pairs.length; onSel(); }; }
   else if (k === "manual") {
-    if (S.manual.tries.length >= MANUAL_TRIES || S.manual.foundAt) { t = "이제 AI와 같은 반응 하기"; act = () => go("lab"); }
-    else if (manualReady()) { t = "레버 당기기 (실험 1회 사용)"; act = pullLever; t2 = "포기하고 AI 부르기"; act2 = () => go("lab"); }
-    else { t = "선반에서 리간드 · 염기 · 용매를 하나씩 고르세요"; t2 = "AI 부르기"; act2 = () => go("lab"); }
+    if (S.manual.tries.length >= MANUAL_TRIES || S.manual.foundAt) { t = "AI와 같은 반응 하기"; act = () => go("lab"); }
+    else if (manualReady()) { t = "레버 당기기"; act = pullLever; t2 = "AI 부르기"; act2 = () => go("lab"); }
+    else { t = "선반에서 시약 3개 고르기"; t2 = "AI 부르기"; act2 = () => go("lab"); }
   } else if (k === "lab") {
-    if (S.ai.round < 10) { t = "레버 당기기 (AI 추천 4개 실험)"; act = pullLever; if (S.ai.revealed.length) { t2 = "결과 모니터 보기"; act2 = () => go("report"); } }
-    else { t = "결과 모니터 보기"; act = () => go("report"); }
-  } else if (k === "report") { t = "다른 반응 해 보기"; act = () => go("select"); t2 = "원리 보기"; act2 = () => go("how"); }
+    if (S.ai.round < 10) { t = "레버 당기기 · 4개 실험"; act = pullLever; if (S.ai.revealed.length) { t2 = "결과 보기"; act2 = () => go("report"); } }
+    else { t = "결과 보기"; act = () => go("report"); }
+  } else if (k === "report") { t = "다른 반응"; act = () => go("select"); t2 = "원리 보기"; act2 = () => go("how"); }
   else { t = "입구로 돌아가기"; act = () => go("lobby"); }
   promptBtn.textContent = t; promptBtn.disabled = !act; promptBtn.onclick = act;
   prompt2.hidden = !t2; prompt2.textContent = t2; prompt2.onclick = act2;
@@ -537,7 +538,8 @@ function loop() {
   else { fBody.rotation.x = 0; fBody.position.y = 0; }
   // hands
   const bob = Math.sin(t * 1.6) * 0.006;
-  handL.position.set(HL0.x, HL0.y + bob, HL0.z); padMesh.position.y = -0.13 + bob;
+  const padOn = S.scene === "select" || S.scene === "manual" || S.scene === "lab"; padMesh.visible = padOn;
+  handL.position.set(HL0.x, HL0.y + bob - (padOn ? 0 : 0.12), HL0.z); padMesh.position.y = -0.13 + bob;
   handR.position.set(HR0.x, HR0.y - bob, HR0.z); handR.rotation.set(0.25, -0.25, 0.15);
   if (handAnim) {
     handAnim.t += dt / 0.55; const s = Math.sin(Math.min(1, handAnim.t) * Math.PI);
@@ -556,7 +558,7 @@ function loop() {
 
 // ---------------------------------------------------------------- start
 function redrawAll() { drawLobby(); drawHow(); onSel(); drawPad(); if (S.scene === "report") drawMonitor(); }
-drawReactor("대기 중", "반응을 먼저 고르세요");
+drawReactor("READY", "");
 paintPlate();
 redrawAll();
 if (document.fonts) Promise.all([document.fonts.load(FD(40)), document.fonts.load(FB(20))]).then(redrawAll, () => {});
