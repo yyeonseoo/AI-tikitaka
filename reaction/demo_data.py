@@ -4,6 +4,7 @@ recommendation), then 9 rounds of 4 experiments re-train on the revealed yields 
 model's top 4 instead of 4 random picks). Also: exact random expectation, history-average order, RDKit 3D coordinates.
 Usage: python reaction/demo_data.py   (-> reaction/demo/data.js)"""
 import json
+import pickle
 import sys
 from math import comb
 from pathlib import Path
@@ -23,6 +24,7 @@ from prepare import load_sm  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
 OUT = ROOT / "demo" / "data.js"
+CACHE11 = ROOT / "cache" / "model11"   # plan 11 standard BO runs (GP, no history, UCB), 10 seeds per pair
 COND = ["ligand", "base", "solvent"]
 
 
@@ -65,7 +67,7 @@ def main():
     hist = history_order(d)
 
     out_pairs = []
-    for p, (order, preds) in zip(pairs, runs):
+    for pi, (p, (order, preds)) in enumerate(zip(pairs, runs)):
         rows = d[key == p]
         yp = rows.y.to_numpy(float)
         best, n = yp.max(), len(yp)
@@ -83,7 +85,8 @@ def main():
             "best": round(best, 1), "nearCount": m,
             "aiFound": int(np.argmax(ai_best >= best - NEAR) + 1) if (ai_best >= best - NEAR).any() else None,
             "randomExpected": round((n + 1) / (m + 1), 1),
-            "curves": {"ai": np.round(ai_best, 1).tolist(), "random": np.round(rand, 1).tolist(), "history": np.round(hist_best, 1).tolist()},
+            "curves": {"ai": np.round(ai_best, 1).tolist(), "random": np.round(rand, 1).tolist(), "history": np.round(hist_best, 1).tolist(),
+                       "bo": np.round(np.maximum.accumulate(pickle.loads((CACHE11 / f"cold_GP_k1_{pi}.pkl").read_bytes()), axis=1).mean(0), 1).tolist()},
             "familiar": {"sameElectrophile": sum(q.startswith(e + " +") for q in others),
                          "sameNucleophile": sum(q.endswith("+ " + nu) for q in others),
                          "roleSwapped": nu == "2d, Bromide"},

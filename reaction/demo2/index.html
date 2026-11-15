@@ -56,7 +56,7 @@ button:focus-visible { outline: 2px solid var(--warm); outline-offset: 3px; }
 // ---------------------------------------------------------------- data
 const D = window.DEMO;
 const NEAR = 5, MANUAL_TRIES = 12;
-const GLOBAL = { random: 27.1, bo: 21.1, history: 16.5, ai: 13.7, hit20: 87, bh: 65 };   // report 4.2 / 4.3
+const GLOBAL = { random: 27.1, bo: 21.1, history: 16.5, ai: 11.1, hit20: 87, bh: 65 };   // report 4.2 / 4.3 (AI = first 4 also recommended, as in this demo)
 const noteOf = (slot, name) => (D.mols[slot + "|" + name] || {}).note || name;
 const S = { scene: "lobby", sel: 0, pair: 0, opened: false,
   manual: null, ai: null };
@@ -340,7 +340,7 @@ function paintPlate() {
   wells.instanceColor.needsUpdate = true;
 }
 // monitor
-const monitor = screenPlane(3.9, 2.19, 1600, 900, 7.6, 2.0, -0.4, -Math.PI / 2);
+const monitor = screenPlane(3.9, 2.19, 1600, 900, 7.6, 2.2, -0.4, -Math.PI / 2);
 add(new THREE.BoxGeometry(0.5, 0.12, 3.6), M(0x35566c), 7.75, 0.75, -0.4); add(new THREE.BoxGeometry(0.06, 0.03, 3.4), B(0x7fe9ff), 7.62, 0.82, -0.4);
 add(new THREE.BoxGeometry(0.02, 1.0, 3.6), B(0x7fe9ff, { transparent: true, opacity: 0.07, depthWrite: false }), 7.62, 1.3, -0.4);
 
@@ -436,7 +436,7 @@ function drawMonitor() {
   glow(x, `${noteOf("electrophile", p.electrophile)} + ${noteOf("nucleophile", p.nucleophile)}`, 72, 142, FD(40), HC.text, 1440, 6);
   const L = 140, T = 250, W = 800, H = 500, sx = n => L + (n - 1) / 39 * W, sy = v => T + H - v / 100 * H;
   const me = cumBest(m.tries.map(t => t.y));
-  const series = [["무작위", p.curves.random, "rgba(190,230,240,0.55)", 3], ["이력 기반 순위", p.curves.history, HC.amber, 3], ["AI", p.curves.ai, HC.cyan, 6]];
+  const series = [["무작위", p.curves.random, "rgba(190,230,240,0.55)", 3], ["기존 BO", p.curves.bo, "#c9a7ff", 3], ["경험 기반 순서", p.curves.history, HC.amber, 3], ["AI", p.curves.ai, HC.cyan, 6]];
   if (me.length) series.push(["나", me, HC.orange, 6]);
   let lx = 72; x.font = FB(24);
   series.forEach(([name, , col]) => { x.fillStyle = col; x.fillRect(lx, 188, 28, 5); x.fillStyle = HC.text; x.fillText(name, lx + 38, 198); lx += 38 + x.measureText(name).width + 48; });
@@ -457,7 +457,7 @@ function drawMonitor() {
   rows.forEach(([k, v, col], i) => { const y = 336 + i * 56; x.font = FB(24); x.fillStyle = HC.dim; x.fillText(k, R + 32, y); x.textAlign = "right"; glow(x, v, R + 468, y, FD(32), col, 300, 6); x.textAlign = "left"; });
   tag(x, "15-PAIR AVERAGE", R + 32, 566);
   x.font = FB(20); x.fillStyle = HC.dim; x.fillText("준최적 조건까지 실험 수 · 보고서 4.3", R + 32, 602);
-  [["무작위", GLOBAL.random, "rgba(190,230,240,0.55)"], ["표준 BO", GLOBAL.bo, "rgba(190,230,240,0.85)"], ["이력 순위", GLOBAL.history, HC.amber], ["AI", GLOBAL.ai, HC.cyan]].forEach(([n, v, c], i) => {
+  [["무작위", GLOBAL.random, "rgba(190,230,240,0.55)"], ["기존 BO", GLOBAL.bo, "#c9a7ff"], ["경험 순서", GLOBAL.history, HC.amber], ["AI", GLOBAL.ai, HC.cyan]].forEach(([n, v, c], i) => {
     const y = 630 + i * 44, bw = v / 30 * 250; x.font = FB(22); x.fillStyle = HC.text; x.fillText(n, R + 32, y + 22); x.fillStyle = c; x.fillRect(R + 150, y + 6, bw, 22);
     x.font = FD(24); x.fillStyle = HC.text; x.fillText(v.toFixed(1), R + 162 + bw, y + 26); });
   x.font = FB(20); x.fillStyle = HC.dim; x.fillText(`상위 20개 안 성공 ${GLOBAL.hit20}% · BH 실험 ${GLOBAL.bh}% 감소`, R + 32, 818);
