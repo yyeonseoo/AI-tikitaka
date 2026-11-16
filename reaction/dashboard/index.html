@@ -121,7 +121,7 @@ svg text { font-family: var(--font); }
     <div class="kpi"><span class="k">사용한 실험</span><span class="v num" id="k-used">0</span><span class="s">최대 40회 · 384개 조건 중</span></div>
     <div class="kpi"><span class="k">현재 최고 수율</span><span class="v num" id="k-best">–</span><span class="s" id="k-best-s">아직 실험 전</span></div>
     <div class="kpi"><span class="k">준최적 조건</span><span id="k-found" class="pill wait">탐색 중</span><span class="s">최고 수율과 5%p 이내</span></div>
-    <div class="kpi"><span class="k">무작위로 실험했다면</span><span class="v num" id="k-rand">–</span><span class="s">준최적 조건까지 기대 실험 수</span></div>
+    <div class="kpi"><span class="k">무작위로 실험했다면</span><span class="v num" id="k-rand">–</span><span class="s">이 반응 기준 · 횟수 제한 없이 준최적까지 기대 실험 수</span></div>
   </section>
 
   <section class="work">
@@ -183,7 +183,7 @@ svg text { font-family: var(--font); }
     </div>
     <div class="card">
       <h2>준최적 조건까지 실험 수</h2>
-      <p class="sub">15쌍 평균 · 최대 40회</p>
+      <p class="sub">15쌍 평균 · 최대 40회 (40회 안에 못 찾으면 41회로 계산)</p>
       <div class="hb" id="v-exp"></div>
       <p class="note">기존 BO는 대상 반응의 실험만으로 학습</p>
     </div>
