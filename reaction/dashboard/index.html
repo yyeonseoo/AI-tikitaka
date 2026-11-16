@@ -18,17 +18,6 @@
   --seq-0: #eef4fc; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95; --seq-7: #0d366b;
   --font: "IBM Plex Sans KR", system-ui, -apple-system, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #111315; --surface: #1a1a19; --surface-2: #222324; --line: #2e3033; --line-strong: #44474b;
-    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e88;
-    --brand: #6da7ec; --brand-soft: #1d2b3d;
-    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-base: #7d8189;
-    --good: #4fc27f; --good-soft: #17301f; --warn: #e0a440; --warn-soft: #33270f;
-    --seq-0: #1e2733; --seq-1: #1f3550; --seq-2: #1c4c80; --seq-3: #2560a8; --seq-4: #3987e5; --seq-5: #6da7ec; --seq-6: #9ec5f4; --seq-7: #cde2fb;
-  }
-}
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #111315; --surface: #1a1a19; --surface-2: #222324; --line: #2e3033; --line-strong: #44474b;
@@ -80,7 +69,6 @@ dl.facts dd { margin: 0; text-align: right; }
 button { font: 600 13px var(--font); border-radius: 8px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text-primary); }
 button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
 :root[data-theme="dark"] button.primary { color: #0b1626; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #0b1626; } }
 button:disabled { opacity: .45; cursor: default; }
 button:focus-visible, select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -124,6 +112,7 @@ svg text { font-family: var(--font); }
 <header class="top"><div class="top-in">
   <div class="brand"><b>ReactPilot</b><span>반응 조건 추천</span></div>
   <div class="picker"><label for="pair">반응</label><select id="pair"></select></div>
+  <button id="theme" type="button" aria-pressed="false">다크 모드</button>
   <span class="mode" title="실험 결과는 Pfizer 공개 HTE 데이터에 기록된 실측 수율을 사용합니다">검증 모드 · 공개 데이터 실측값으로 재현</span>
 </div></header>
 
@@ -385,7 +374,11 @@ $("reset").onclick = () => choose(S.pair);
 const sel = $("pair");
 D.pairs.forEach((p, i) => sel.insertAdjacentHTML("beforeend", `<option value="${i}">${note("electrophile", p.electrophile)} + ${note("nucleophile", p.nucleophile)}</option>`));
 sel.onchange = () => choose(+sel.value);
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { render(); drawValid(); });
+const themeBtn = $("theme");
+function setTheme(t) { document.documentElement.dataset.theme = t; themeBtn.textContent = t === "dark" ? "라이트 모드" : "다크 모드"; themeBtn.setAttribute("aria-pressed", t === "dark"); try { localStorage.setItem("rp-theme", t); } catch (e) {} }
+let saved = "light"; try { saved = localStorage.getItem("rp-theme") || "light"; } catch (e) {}
+setTheme(saved);
+themeBtn.onclick = () => { setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); render(); drawValid(); };
 choose(0); drawValid();
 </script>
 </body>
