@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReactPilot 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: header bar → KPI row → 3-column work area (reaction / recommendation + plate / curve + log) → validation row */
+:root {
+  color-scheme: light;
+  --bg: #f3f5f7; --surface: #fcfcfb; --surface-2: #f1f3f5; --line: #e1e4e8; --line-strong: #c9ced4;
+  --text-primary: #0f1419; --text-secondary: #4d5560; --text-muted: #7a828c;
+  --brand: #1c5cab; --brand-soft: #e3eefb;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-base: #9aa1aa;
+  --good: #0f7b3e; --good-soft: #dff3e6; --warn: #a86400; --warn-soft: #fbefd9;
+  --seq-0: #eef4fc; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95; --seq-7: #0d366b;
+  --font: "IBM Plex Sans KR", system-ui, -apple-system, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111315; --surface: #1a1a19; --surface-2: #222324; --line: #2e3033; --line-strong: #44474b;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e88;
+    --brand: #6da7ec; --brand-soft: #1d2b3d;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-base: #7d8189;
+    --good: #4fc27f; --good-soft: #17301f; --warn: #e0a440; --warn-soft: #33270f;
+    --seq-0: #1e2733; --seq-1: #1f3550; --seq-2: #1c4c80; --seq-3: #2560a8; --seq-4: #3987e5; --seq-5: #6da7ec; --seq-6: #9ec5f4; --seq-7: #cde2fb;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111315; --surface: #1a1a19; --surface-2: #222324; --line: #2e3033; --line-strong: #44474b;
+  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e88;
+  --brand: #6da7ec; --brand-soft: #1d2b3d;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-base: #7d8189;
+  --good: #4fc27f; --good-soft: #17301f; --warn: #e0a440; --warn-soft: #33270f;
+  --seq-0: #1e2733; --seq-1: #1f3550; --seq-2: #1c4c80; --seq-3: #2560a8; --seq-4: #3987e5; --seq-5: #6da7ec; --seq-6: #9ec5f4; --seq-7: #cde2fb;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text-primary); font: 14px/1.5 var(--font); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+header.top { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 1440px; margin: 0 auto; padding: 12px max(20px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand b { font-size: 18px; font-weight: 700; color: var(--brand); letter-spacing: -.01em; }
+.brand span { color: var(--text-secondary); font-size: 13px; }
+.picker { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; }
+.picker label { color: var(--text-secondary); font-size: 13px; white-space: nowrap; }
+select { font: 500 14px var(--font); color: var(--text-primary); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 30px 7px 10px; max-width: 420px; min-width: 0; }
+.mode { font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+main { max-width: 1440px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left, 0px)) 40px; display: grid; gap: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 2px; }
+.kpi .k { color: var(--text-secondary); font-size: 13px; }
+.kpi .v { font-size: 26px; font-weight: 600; }
+.kpi .s { color: var(--text-muted); font-size: 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 3px 10px; width: fit-content; }
+.pill.good { color: var(--good); background: var(--good-soft); }
+.pill.wait { color: var(--text-secondary); background: var(--surface-2); }
+.work { display: grid; grid-template-columns: minmax(250px, 0.9fr) minmax(0, 2fr) minmax(0, 1.4fr); gap: 16px; align-items: start; }
+.col { display: grid; gap: 16px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; display: grid; gap: 12px; align-content: start; }
+.card h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.card .sub { margin: -8px 0 0; color: var(--text-muted); font-size: 12px; }
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mols { display: grid; gap: 10px; }
+.mol { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.mol .view { position: relative; height: 128px; background: var(--surface-2); }
+.mol .cap { padding: 8px 10px; display: grid; }
+.mol .cap small { color: var(--text-muted); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.mol .cap b { font-weight: 600; font-size: 13px; }
+dl.facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; }
+dl.facts dt { color: var(--text-secondary); }
+dl.facts dd { margin: 0; text-align: right; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: 600 13px var(--font); border-radius: 8px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text-primary); }
+button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+:root[data-theme="dark"] button.primary { color: #0b1626; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #0b1626; } }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: var(--text-secondary); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.r, th.r { text-align: right; }
+.bar { position: relative; height: 8px; border-radius: 4px; background: var(--surface-2); min-width: 60px; }
+.bar i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--series-1); }
+.cond b { font-weight: 600; }
+.cond span { color: var(--text-muted); }
+.scroll { overflow-x: auto; }
+.log { max-height: 260px; overflow-y: auto; }
+.tag { font-size: 11px; font-weight: 600; border-radius: 6px; padding: 2px 6px; }
+.tag.good { color: var(--good); background: var(--good-soft); }
+svg text { font-family: var(--font); }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-secondary); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.tip { position: fixed; z-index: 30; pointer-events: none; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 10px; font-size: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12); max-width: 260px; }
+.tip b { display: block; margin-bottom: 2px; }
+.tip .row { display: flex; justify-content: space-between; gap: 12px; }
+.tip .row i { width: 10px; height: 3px; display: inline-block; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.ramp { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+.ramp div { width: 140px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--seq-0), var(--seq-2), var(--seq-4), var(--seq-6)); }
+.valid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.hb { display: grid; grid-template-columns: 124px 1fr 58px; gap: 6px 10px; align-items: center; font-size: 13px; }
+.hb .lbl { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb .val { text-align: right; white-space: nowrap; }
+.hb .track { height: 14px; background: var(--surface-2); border-radius: 0 4px 4px 0; }
+.hb .track i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--series-base); }
+.hb .track i.me { background: var(--series-1); }
+.note { color: var(--text-muted); font-size: 12px; margin: 0; }
+@media (max-width: 1180px) { .work { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .work > .col:first-child { grid-column: 1 / -1; } .mols { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .work, .valid { grid-template-columns: minmax(0, 1fr); } .mols { grid-template-columns: 1fr; } .picker { margin-left: 0; width: 100%; } select { flex: 1; } }
+@media (prefers-reduced-motion: no-preference) { .bar i, .hb .track i { transition: width .3s ease; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand"><b>ReactPilot</b><span>반응 조건 추천</span></div>
+  <div class="picker"><label for="pair">반응</label><select id="pair"></select></div>
+  <span class="mode" title="실험 결과는 Pfizer 공개 HTE 데이터에 기록된 실측 수율을 사용합니다">검증 모드 · 공개 데이터 실측값으로 재현</span>
+</div></header>
+
+<main>
+  <section class="kpis" aria-label="진행 요약">
+    <div class="kpi"><span class="k">사용한 실험</span><span class="v num" id="k-used">0</span><span class="s">최대 40회 · 384개 조건 중</span></div>
+    <div class="kpi"><span class="k">현재 최고 수율</span><span class="v num" id="k-best">–</span><span class="s" id="k-best-s">아직 실험 전</span></div>
+    <div class="kpi"><span class="k">준최적 조건</span><span id="k-found" class="pill wait">탐색 중</span><span class="s">최고 수율과 5%p 이내</span></div>
+    <div class="kpi"><span class="k">무작위로 실험했다면</span><span class="v num" id="k-rand">–</span><span class="s">준최적 조건까지 기대 실험 수</span></div>
+  </section>
+
+  <section class="work">
+    <div class="col">
+      <div class="card">
+        <h2>반응 정보</h2>
+        <div class="mols">
+          <div class="mol"><div class="view" id="m-e"></div><div class="cap"><small>친전자체</small><b id="n-e"></b></div></div>
+          <div class="mol"><div class="view" id="m-n"></div><div class="cap"><small>친핵체</small><b id="n-n"></b></div></div>
+        </div>
+        <dl class="facts">
+          <dt>조건 공간</dt><dd class="num">384개</dd>
+          <dt>구성</dt><dd>리간드 12 · 염기 8 · 용매 4</dd>
+          <dt>학습 데이터</dt><dd>다른 기질 쌍 14개</dd>
+          <dt>모델 친숙도</dt><dd id="fam"></dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <div class="head"><h2 id="q-title">다음 추천 배치</h2>
+          <div class="btns"><button class="primary" id="run">배치 실험 결과 반영</button><button id="all">끝까지 실행</button><button id="reset">초기화</button></div></div>
+        <p class="sub">과거 실험 기록으로 학습한 모델이 고른 4개 조건. 결과를 반영하면 다시 학습해 다음 배치를 추천합니다.</p>
+        <div class="scroll"><table>
+          <thead><tr><th>#</th><th>리간드 · 염기 · 용매</th><th class="r">예측 수율</th><th></th></tr></thead>
+          <tbody id="queue"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="head"><h2>384개 조건 예측 지도</h2><div class="ramp"><span>0%</span><div></div><span>100% 예측 수율</span></div></div>
+        <p class="sub" id="plate-sub">행: 리간드 · 열: 염기마다 용매 4칸. 테두리 = 실험 완료, 초록 테두리 = 준최적 조건.</p>
+        <div class="scroll"><svg id="plate" class="chart" role="img" aria-label="384개 조건의 예측 수율 지도"></svg></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <h2>탐색 곡선</h2>
+        <p class="sub">실험 수에 따라 지금까지 찾은 최고 수율</p>
+        <div class="legend" id="lg"></div>
+        <svg id="curve" class="chart" role="img" aria-label="실험 수에 따른 최고 수율 곡선"></svg>
+      </div>
+      <div class="card">
+        <div class="head"><h2>실험 기록</h2><span class="note" id="log-n"></span></div>
+        <div class="log"><table>
+          <thead><tr><th>회</th><th>조건</th><th class="r">실측 수율</th></tr></thead>
+          <tbody id="log"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="valid" aria-label="검증 성능">
+    <div class="card">
+      <h2>실험 전 추천 적중률</h2>
+      <p class="sub">처음 보는 기질 쌍 15개 · 상위 20개 안에 준최적 조건 포함</p>
+      <div class="hb" id="v-hit"></div>
+    </div>
+    <div class="card">
+      <h2>준최적 조건까지 실험 수</h2>
+      <p class="sub">15쌍 평균 · 최대 40회</p>
+      <div class="hb" id="v-exp"></div>
+      <p class="note">기존 BO는 대상 반응의 실험만으로 학습</p>
+    </div>
+    <div class="card">
+      <h2>과거 기록이 쌓일수록</h2>
+      <p class="sub">학습에 쓴 과거 스크리닝 기록 수에 따른 실험 수 (실험 전 추천 순서 기준)</p>
+      <div class="legend" id="lg2"></div>
+      <svg id="lc" class="chart" role="img" aria-label="과거 기록 수에 따른 준최적 조건까지 실험 수"></svg>
+    </div>
+  </section>
+</main>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.1.0/build/3Dmol-min.js"></script>
+<script src="data.js"></script>
+<script>
+"use strict";
+const D = window.DEMO, NEAR = 5, BATCH = 4, ROUNDS = 10;
+const note = (slot, name) => (D.mols[slot + "|" + name] || {}).note || name;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const $ = id => document.getElementById(id);
+const S = { pair: 0, round: 0, revealed: [] };
+const P = () => D.pairs[S.pair];
+// report 4.2 / 4.3 / 7.2 (validation numbers, fixed)
+const V = {
+  hit: [["무작위", 38], ["능형 회귀", 53], ["경험 기반 순서", 60], ["상호작용 선형", 80], ["추천 엔진", 87, 1]],
+  exp: [["무작위", 27.1], ["기존 BO", 21.1], ["경험 기반 순서", 16.5], ["추천 (첫 4개 무작위)", 13.7, 1], ["추천 (첫 4개부터)", 11.1, 1]],
+  lc: { k: [1, 2, 4, 7, 10, 14], ai: [59.1, 59.0, 52.2, 42.8, 40.8, 29.6], hist: [67.9, 70.3, 67.9, 62.9, 60.8, 53.3], rand: 79.3 },
+};
+
+// ---------- helpers
+const svgNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text) { const e = document.createElementNS(svgNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+function lists(p) { const L = [], B = [], V2 = []; p.conds.forEach(c => { if (!L.includes(c[0])) L.push(c[0]); if (!B.includes(c[1])) B.push(c[1]); if (!V2.includes(c[2])) V2.push(c[2]); }); return { L, B, V: V2 }; }
+const pct = v => v.toFixed(1) + "%";
+const tip = $("tip");
+function showTip(html, e) { tip.innerHTML = html; tip.hidden = false; const x = Math.min(innerWidth - tip.offsetWidth - 12, e.clientX + 14), y = Math.min(innerHeight - tip.offsetHeight - 12, e.clientY + 14); tip.style.left = x + "px"; tip.style.top = y + "px"; }
+function hideTip() { tip.hidden = true; }
+const seqColor = v => { const steps = ["--seq-0", "--seq-1", "--seq-2", "--seq-3", "--seq-4", "--seq-5", "--seq-6", "--seq-7"]; return css(steps[Math.max(0, Math.min(7, Math.floor(v / 100 * 8)))]); };
+const condLabel = c => `<b>${c[0] === "없음" ? "리간드 없음" : c[0]}</b> <span>·</span> ${c[1] === "없음" ? "염기 없음" : c[1]} <span>·</span> ${c[2]}`;
+const foundAt = () => { const p = P(); const i = S.revealed.findIndex(j => p.y[j] >= p.best - NEAR); return i < 0 ? null : i + 1; };
+
+// ---------- structures
+let viewers = {};
+function drawMol(divId, molblock) {
+  const div = $(divId); div.innerHTML = "";
+  if (!molblock || !window.$3Dmol) { div.textContent = ""; return; }
+  const v = $3Dmol.createViewer(div, { backgroundAlpha: 0 });
+  v.addModel(molblock, "sdf"); v.setStyle({}, { stick: { radius: 0.14 }, sphere: { scale: 0.22 } }); v.zoomTo(); v.render(); viewers[divId] = v;
+}
+
+// ---------- reaction info
+function drawInfo() {
+  const p = P();
+  $("n-e").textContent = note("electrophile", p.electrophile); $("n-n").textContent = note("nucleophile", p.nucleophile);
+  drawMol("m-e", (D.mols["electrophile|" + p.electrophile] || {}).mol); drawMol("m-n", (D.mols["nucleophile|" + p.nucleophile] || {}).mol);
+  const f = p.familiar, n = f.sameElectrophile + f.sameNucleophile;
+  const lvl = f.roleSwapped ? ["낮음", "warn"] : n >= 5 ? ["높음", "good"] : ["보통", "wait"];
+  $("fam").innerHTML = `<span class="pill ${lvl[1] === "good" ? "good" : "wait"}" ${lvl[1] === "warn" ? 'style="color:var(--warn);background:var(--warn-soft)"' : ""}>${lvl[1] === "good" ? "✓" : lvl[1] === "warn" ? "!" : "–"} ${lvl[0]}</span>`;
+  $("fam").title = `같은 친전자체로 학습한 쌍 ${f.sameElectrophile}개 · 같은 친핵체 ${f.sameNucleophile}개${f.roleSwapped ? " · 역할이 바뀐 반응" : ""}`;
+}
+
+// ---------- KPIs, queue, log
+function drawState() {
+  const p = P(), ys = S.revealed.map(i => p.y[i]), best = ys.length ? Math.max(...ys) : null, fa = foundAt();
+  $("k-used").textContent = `${S.revealed.length}`;
+  $("k-best").textContent = best === null ? "–" : pct(best);
+  $("k-best-s").textContent = best === null ? "아직 실험 전" : `데이터상 최고 ${pct(p.best)}`;
+  const kf = $("k-found"); kf.className = "pill " + (fa ? "good" : "wait"); kf.textContent = fa ? `✓ ${fa}번째 실험에서 도달` : "탐색 중";
+  $("k-rand").textContent = `${p.randomExpected}회`;
+  const q = $("queue"); q.innerHTML = "";
+  if (S.round < ROUNDS) {
+    $("q-title").textContent = `다음 추천 배치 · ${S.round + 1}회차`;
+    p.order.slice(S.round * BATCH, S.round * BATCH + BATCH).forEach((i, k) => {
+      const v = p.preds[S.round][i];
+      q.insertAdjacentHTML("beforeend", `<tr><td class="num">${S.revealed.length + k + 1}</td><td class="cond">${condLabel(p.conds[i])}</td><td class="r num">${pct(v)}</td><td style="width:28%"><div class="bar"><i style="width:${Math.max(2, v)}%"></i></div></td></tr>`);
+    });
+  } else { $("q-title").textContent = "40회 실험 완료"; q.innerHTML = `<tr><td colspan="4" style="color:var(--text-muted)">모든 배치를 실행했어요. 초기화하거나 다른 반응을 선택하세요.</td></tr>`; }
+  $("run").disabled = $("all").disabled = S.round >= ROUNDS; $("reset").disabled = !S.revealed.length;
+  const lg = $("log"); lg.innerHTML = "";
+  S.revealed.slice().reverse().forEach((i, k) => {
+    const n = S.revealed.length - k, hit = p.y[i] >= p.best - NEAR;
+    lg.insertAdjacentHTML("beforeend", `<tr><td class="num">${n}</td><td class="cond">${condLabel(p.conds[i])} ${hit ? '<span class="tag good">준최적</span>' : ""}</td><td class="r num">${pct(p.y[i])}</td></tr>`);
+  });
+  if (!S.revealed.length) lg.innerHTML = `<tr><td colspan="3" style="color:var(--text-muted)">아직 실험 기록이 없어요. 추천 배치의 결과를 반영해 보세요.</td></tr>`;
+  $("log-n").textContent = S.revealed.length ? `${S.revealed.length}건` : "";
+}
+
+// ---------- plate heatmap (12 ligands x 8 bases x 4 solvents)
+function drawPlate() {
+  const p = P(), { L, B, V: SV } = lists(p), svg = $("plate"); svg.innerHTML = "";
+  const cell = 13, gap = 2, padL = 84, padT = 22, groupGap = 6, W = padL + B.length * (SV.length * (cell + gap) + groupGap), H = padT + L.length * (cell + gap) + 6;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.style.minWidth = Math.round(W * 0.8) + "px";
+  $("plate-sub").textContent = `행: 리간드 · 열: 염기마다 용매 4칸 (${SV.join(" · ")}). 테두리 = 실험 완료, 초록 테두리 = 준최적 조건.`;
+  const pred = p.preds[Math.min(S.round, ROUNDS - 1)], done = new Set(S.revealed);
+  const idx = {}; p.conds.forEach((c, i) => { idx[c.join("|")] = i; });
+  B.forEach((b, bi) => {
+    const gx = padL + bi * (SV.length * (cell + gap) + groupGap);
+    el("text", { x: gx + (SV.length * (cell + gap)) / 2 - gap / 2, y: 14, "text-anchor": "middle", "font-size": 10.5, fill: css("--text-secondary") }, svg, b === "없음" ? "염기 없음" : b);
+  });
+  L.forEach((l, li) => {
+    const y = padT + li * (cell + gap);
+    el("text", { x: padL - 8, y: y + cell - 3, "text-anchor": "end", "font-size": 10.5, fill: css("--text-secondary") }, svg, l === "없음" ? "리간드 없음" : l);
+    B.forEach((b, bi) => SV.forEach((s, si) => {
+      const i = idx[[l, b, s].join("|")]; if (i === undefined) return;
+      const x = padL + bi * (SV.length * (cell + gap) + groupGap) + si * (cell + gap), isDone = done.has(i), hit = isDone && p.y[i] >= p.best - NEAR;
+      const r = el("rect", { x, y, width: cell, height: cell, rx: 3, fill: seqColor(pred[i]) }, svg);
+      if (isDone) el("rect", { x: x + 1, y: y + 1, width: cell - 2, height: cell - 2, rx: 2.5, fill: "none", stroke: hit ? css("--good") : css("--text-primary"), "stroke-width": 2 }, svg);
+      const hot = el("rect", { x: x - 1, y: y - 1, width: cell + 2, height: cell + 2, fill: "transparent" }, svg);
+      hot.addEventListener("mousemove", e => showTip(`<b>${l === "없음" ? "리간드 없음" : l} · ${b === "없음" ? "염기 없음" : b} · ${s}</b><div class="row"><span>예측 수율</span><span class="num">${pct(pred[i])}</span></div>${isDone ? `<div class="row"><span>실측 수율</span><span class="num">${pct(p.y[i])}</span></div>` : ""}`, e));
+      hot.addEventListener("mouseleave", hideTip);
+    }));
+  });
+}
+
+// ---------- line chart with crosshair tooltip
+function lineChart(svg, { series, xs, xLabel, yMax, yFmt, yLabel, refLine, w = 520, h = 300, xTicks, endLabels = true }) {
+  svg.innerHTML = ""; const pad = { l: 44, r: endLabels ? 104 : 14, t: 12, b: 40 };
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const X0 = xs[0], X1 = xs[xs.length - 1], sx = x => pad.l + (x - X0) / (X1 - X0) * (w - pad.l - pad.r), sy = v => pad.t + (1 - v / yMax) * (h - pad.t - pad.b);
+  const grid = css("--line"), mut = css("--text-muted");
+  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; el("line", { x1: pad.l, x2: w - pad.r, y1: sy(v), y2: sy(v), stroke: grid, "stroke-width": 1 }, svg); el("text", { x: pad.l - 8, y: sy(v) + 4, "text-anchor": "end", "font-size": 11, fill: mut }, svg, yFmt(v)); }
+  (xTicks || xs).forEach(x => el("text", { x: sx(x), y: h - pad.b + 18, "text-anchor": "middle", "font-size": 11, fill: mut }, svg, x));
+  el("text", { x: (pad.l + w - pad.r) / 2, y: h - 4, "text-anchor": "middle", "font-size": 11, fill: mut }, svg, xLabel);
+  if (yLabel) el("text", { x: 4, y: pad.t - 2 + 10, "font-size": 11, fill: mut }, svg, "");
+  if (refLine) { el("line", { x1: pad.l, x2: w - pad.r, y1: sy(refLine.v), y2: sy(refLine.v), stroke: css("--text-secondary"), "stroke-width": 1.2, "stroke-dasharray": "4 4" }, svg);
+    el("text", { x: w - pad.r - 4, y: sy(refLine.v) + 15, "text-anchor": "end", "font-size": 11, fill: css("--text-secondary") }, svg, refLine.label); }
+  const labels = [];
+  series.forEach(s => {
+    const pts = s.ys.map((v, i) => v === null ? null : [sx(xs[i]), sy(v)]).filter(Boolean); if (!pts.length) return;
+    el("path", { d: "M" + pts.map(q => q.join(",")).join("L"), fill: "none", stroke: css(s.color), "stroke-width": s.w || 2, "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-dasharray": s.dash || "none" }, svg);
+    const last = pts[pts.length - 1]; if (s.dot) el("circle", { cx: last[0], cy: last[1], r: 4.5, fill: css(s.color), stroke: css("--surface"), "stroke-width": 2 }, svg);
+    if (endLabels) labels.push({ y: last[1], x: last[0], text: s.name });
+  });
+  if (endLabels) { labels.sort((a, b) => a.y - b.y); for (let i = 1; i < labels.length; i++) if (labels[i].y - labels[i - 1].y < 13) labels[i].y = labels[i - 1].y + 13;
+    labels.forEach(lb => el("text", { x: w - pad.r + 8, y: lb.y + 4, "font-size": 11, fill: css("--text-secondary") }, svg, lb.text)); }
+  const cross = el("line", { y1: pad.t, y2: h - pad.b, stroke: css("--line-strong"), "stroke-width": 1, visibility: "hidden" }, svg);
+  const hit = el("rect", { x: pad.l, y: pad.t, width: w - pad.l - pad.r, height: h - pad.t - pad.b, fill: "transparent" }, svg);
+  hit.addEventListener("mousemove", e => {
+    const r = svg.getBoundingClientRect(), mx = (e.clientX - r.left) / r.width * w; let bi = 0;
+    xs.forEach((x, i) => { if (Math.abs(sx(x) - mx) < Math.abs(sx(xs[bi]) - mx)) bi = i; });
+    cross.setAttribute("x1", sx(xs[bi])); cross.setAttribute("x2", sx(xs[bi])); cross.setAttribute("visibility", "visible");
+    showTip(`<b>${xLabel} ${xs[bi]}</b>` + series.filter(s => s.ys[bi] !== null && s.ys[bi] !== undefined).map(s => `<div class="row"><span><i style="background:${css(s.color)}"></i>${s.name}</span><span class="num">${yFmt(s.ys[bi], true)}</span></div>`).join(""), e);
+  });
+  hit.addEventListener("mouseleave", () => { cross.setAttribute("visibility", "hidden"); hideTip(); });
+}
+function legend(id, items) { $(id).innerHTML = items.map(([n, c]) => `<span><i style="background:var(${c})"></i>${n}</span>`).join(""); }
+
+function drawCurve() {
+  const p = P(), xs = Array.from({ length: 40 }, (_, i) => i + 1);
+  let b = 0; const ai = xs.map((x, i) => i < S.revealed.length ? (b = Math.max(b, p.y[S.revealed[i]])) : null);
+  lineChart($("curve"), {
+    series: [
+      { name: "무작위", ys: p.curves.random, color: "--series-base", dash: "3 4" },
+      { name: "기존 BO", ys: p.curves.bo, color: "--series-2" },
+      { name: "경험 기반 순서", ys: p.curves.history, color: "--series-3" },
+      { name: "추천 엔진", ys: ai, color: "--series-1", w: 3, dot: true },
+    ],
+    xs, xLabel: "실험 수", yMax: 100, yFmt: (v, t) => t ? pct(v) : v.toFixed(0) + "%", xTicks: [1, 10, 20, 30, 40],
+    refLine: { v: p.best - NEAR, label: "준최적 기준" },
+  });
+}
+legend("lg", [["추천 엔진", "--series-1"], ["기존 BO", "--series-2"], ["경험 기반 순서", "--series-3"], ["무작위 (기댓값)", "--series-base"]]);
+
+// ---------- validation panel
+function hbars(id, rows, max, fmt) {
+  $(id).innerHTML = rows.map(([n, v, me]) => `<span class="lbl" title="${n}">${n}</span><div class="track"><i class="${me ? "me" : ""}" style="width:${v / max * 100}%"></i></div><span class="val num">${fmt(v)}</span>`).join("");
+}
+function drawValid() {
+  hbars("v-hit", V.hit, 100, v => v + "%");
+  hbars("v-exp", V.exp, 30, v => v.toFixed(1) + "회");
+  legend("lg2", [["추천 엔진", "--series-1"], ["경험 기반 순서", "--series-3"], ["무작위 (기댓값)", "--series-base"]]);
+  lineChart($("lc"), {
+    series: [{ name: "무작위", ys: V.lc.k.map(() => V.lc.rand), color: "--series-base", dash: "3 4" },
+             { name: "경험 기반 순서", ys: V.lc.hist, color: "--series-3" },
+             { name: "추천 엔진", ys: V.lc.ai, color: "--series-1", w: 3, dot: true }],
+    xs: V.lc.k, xLabel: "과거 기록(기질 쌍) 수", yMax: 100, yFmt: (v, t) => t ? v.toFixed(1) + "회" : v.toFixed(0), w: 520, h: 260,
+  });
+}
+
+// ---------- actions
+function render() { drawState(); drawPlate(); drawCurve(); }
+function step() { const p = P(); if (S.round >= ROUNDS) return; S.revealed.push(...p.order.slice(S.round * BATCH, S.round * BATCH + BATCH)); S.round++; render(); }
+function choose(i) { S.pair = i; S.round = 0; S.revealed = []; drawInfo(); render(); }
+$("run").onclick = step;
+$("all").onclick = () => { while (S.round < ROUNDS) { const p = P(); S.revealed.push(...p.order.slice(S.round * BATCH, S.round * BATCH + BATCH)); S.round++; } render(); };
+$("reset").onclick = () => choose(S.pair);
+const sel = $("pair");
+D.pairs.forEach((p, i) => sel.insertAdjacentHTML("beforeend", `<option value="${i}">${note("electrophile", p.electrophile)} + ${note("nucleophile", p.nucleophile)}</option>`));
+sel.onchange = () => choose(+sel.value);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { render(); drawValid(); });
+choose(0); drawValid();
+</script>
+</body>
+</html>

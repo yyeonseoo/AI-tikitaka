@@ -99,6 +99,7 @@ def main():
     print("  3D failed:", [k for k, v in mols.items() if v["mol"] is None])
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text("window.DEMO = " + json.dumps({"pairs": out_pairs, "mols": mols}, ensure_ascii=False) + ";\n", encoding="utf-8")
+    (ROOT / "dashboard" / "data.js").write_text(OUT.read_text(encoding="utf-8"), encoding="utf-8")   # dashboard keeps its own copy (independent of the 3D demo)
     print(f"wrote {OUT} ({OUT.stat().st_size / 1e6:.1f} MB)")
 
 
