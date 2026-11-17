@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ReactPilot 대시보드</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
+@font-face { font-family: "Pretendard Variable"; font-weight: 45 920; font-style: normal; font-display: swap; src: url("fonts/PretendardVariable.woff2") format("woff2"); }
 /* Layout: fixed sidebar + main grid of rounded cards (KPI row, recommendation + curve, map + side column, validation row). Light only. */
 :root {
   color-scheme: light;
@@ -15,13 +14,13 @@
   --key: #1f6fd1; --key-2: #17b3a6; --key-soft: #e6f0fc; --mint-soft: #e2f6f3;
   --s-ai: #2a78d6; --s-bo: #eb6834; --s-hist: #1baf7a; --s-rand: #a3adb9;
   --good: #0f7b3e; --good-soft: #def3e6; --warn: #a86400; --warn-soft: #fbefd9;
-  --font: "Inter", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  --font: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); }
-.num { font-family: "Inter", var(--font); font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
 .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
 
 /* sidebar */
@@ -235,7 +234,8 @@ svg text { font-family: var(--font); }
 <script>
 "use strict";
 const D = window.DEMO, NEAR = 5, BATCH = 4, ROUNDS = 10;
-const note = (slot, name) => (D.mols[slot + "|" + name] || {}).note || name;
+// reagent notes may carry an explanation after the name; keep the name only
+const note = (slot, name) => ((D.mols[slot + "|" + name] || {}).note || name).split(/ \(|\. /)[0];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const $ = id => document.getElementById(id);
 const S = { pair: 0, round: 0, revealed: [] };
